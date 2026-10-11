@@ -1,0 +1,3848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Fruit Juice Tycoon: Multiplayer Edition</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+:root {
+  --navy: #17325f;
+  --navy-soft: #24457f;
+  --money: #1fa550;
+  --money-edge: #6be08f;
+  --orange: #ff9a2e;
+  --font: "Fredoka", "Trebuchet MS", "Segoe UI Rounded", "Arial Rounded MT Bold", Verdana, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #6cc4f5;
+  font-family: var(--font);
+  color: #fff;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+canvas#scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: none; }
+body.no-ball canvas#scene { cursor: default; }
+
+#hud { position: fixed; inset: 0; pointer-events: none; }
+
+/* ---------- Top bar ---------- */
+#topbar {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 140px;
+  padding: 4px 16px;
+  font-weight: 900;
+  font-size: 1.1rem;
+  font-variant-numeric: tabular-nums;
+  background: rgba(23, 50, 95, 0.9);
+  border: 3px solid #3a5fa3;
+  border-radius: 999px;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+}
+
+.pill-label { font-size: 0.68rem; font-weight: 700; opacity: 0.85; }
+.pill-row { display: flex; gap: 8px; }
+
+.pill-money {
+  min-width: 190px;
+  padding: 6px 28px;
+  font-size: 1.9rem;
+  background: var(--money);
+  border-color: var(--money-edge);
+}
+
+/* ---------- Inventory (left) ---------- */
+#inventory {
+  position: absolute;
+  left: 14px;
+  top: 232px;
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(8, auto);
+  column-gap: 16px;
+  row-gap: 4px;
+}
+
+.inv-item { display: flex; align-items: center; gap: 8px; }
+
+.inv-dot {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+}
+
+.inv-count {
+  font-size: 1.15rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  -webkit-text-stroke: 1px rgba(0, 0, 0, 0.6);
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.5);
+}
+
+/* ---------- Upgrade panel (right) ---------- */
+#upgrade-panel {
+  position: absolute;
+  right: 14px;
+  top: 90px;
+  width: 250px;
+  padding: 10px 12px;
+  background: rgba(23, 50, 95, 0.85);
+  border: 3px solid #0e2145;
+  border-radius: 16px;
+}
+
+#upgrade-panel h2 { margin: 0 0 8px; font-size: 1rem; text-align: center; }
+.up-row { margin-bottom: 8px; line-height: 1.25; }
+.up-row:last-child { margin-bottom: 0; }
+.up-head { display: flex; justify-content: space-between; font-weight: 800; font-size: 0.85rem; }
+.up-level { color: #ffe14d; }
+.up-effect { font-size: 0.72rem; opacity: 0.85; }
+
+/* ---------- Bottom ---------- */
+#bottom {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.hotbar-slot {
+  position: relative;
+  pointer-events: auto;
+  width: 66px;
+  height: 66px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  font: inherit;
+  color: #fff;
+  background: #8a4f1d;
+  border: 4px solid #5a300d;
+  border-radius: 12px;
+  cursor: pointer;
+  opacity: 0.75;
+}
+.hotbar-slot.equipped { opacity: 1; border-color: #35d4ff; box-shadow: 0 0 14px rgba(53, 212, 255, 0.8); }
+.hotbar-slot:focus-visible { outline: 4px solid #fff; outline-offset: 2px; }
+
+.slot-key { position: absolute; top: 2px; left: 6px; font-size: 0.8rem; font-weight: 700; }
+.slot-ball {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 3px solid #35d4ff;
+  background: radial-gradient(circle, rgba(53, 212, 255, 0.25), rgba(53, 212, 255, 0.55));
+  box-shadow: inset 0 0 8px rgba(255, 255, 255, 0.6);
+}
+
+.controls {
+  margin: 0;
+  padding: 6px 14px;
+  text-align: center;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  background: rgba(23, 50, 95, 0.75);
+  border-radius: 12px;
+}
+
+/* ---------- Floating feedback ---------- */
+#feedback { position: absolute; inset: 0; overflow: hidden; }
+
+.float-text {
+  position: fixed;
+  font-weight: 900;
+  font-size: 1.7rem;
+  white-space: nowrap;
+  color: var(--c, #fff);
+  -webkit-text-stroke: 1px rgba(0, 0, 0, 0.6);
+  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.45);
+  animation: floatUp 1.3s ease-out forwards;
+}
+
+@keyframes floatUp {
+  0%   { opacity: 0; transform: translate(calc(-50% + var(--dx, 0px)), -30%) scale(0.7); }
+  15%  { opacity: 1; transform: translate(calc(-50% + var(--dx, 0px)), -50%) scale(1.1); }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--dx, 0px)), calc(-50% - 110px)) scale(1); }
+}
+
+/* ---------- Rebirth and save buttons ---------- */
+.pill-rebirth { border-color: #c58bff; background: rgba(79, 38, 130, 0.9); }
+
+#rebirth-box { margin-top: 12px; padding-top: 10px; border-top: 2px solid rgba(255, 255, 255, 0.2); text-align: center; }
+#rebirth-info { margin: 6px 0 0; font-size: 0.72rem; line-height: 1.3; opacity: 0.85; }
+
+.hud-btn {
+  pointer-events: auto;
+  width: 100%;
+  padding: 8px 10px;
+  font: inherit;
+  font-weight: 900;
+  color: #fff;
+  background: #8a3fd6;
+  border: 3px solid #c58bff;
+  border-radius: 14px;
+  cursor: pointer;
+}
+.hud-btn:hover:not(:disabled) { filter: brightness(1.12); }
+.hud-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.hud-btn:focus-visible { outline: 4px solid #fff; outline-offset: 2px; }
+.hud-btn-small { margin-top: 10px; padding: 4px 8px; font-size: 0.72rem; font-weight: 700; background: #5a2a2a; border-color: #b86a6a; }
+
+@media (prefers-reduced-motion: reduce) {
+  .float-text { animation-duration: 0.01s; animation-fill-mode: forwards; }
+}
+
+@media (max-width: 800px) {
+  #upgrade-panel { width: 190px; }
+  #upgrade-list { display: none; }
+  .controls { font-size: 0.68rem; }
+  .pill { min-width: 100px; }
+}
+
+/* ---------- Collector ball (2D, follows the mouse / finger) ---------- */
+#collector {
+  position: fixed;
+  left: 0;
+  top: 0;
+  display: none;
+  border-radius: 50%;
+  border: 3px solid #35d4ff;
+  background: radial-gradient(circle, rgba(53, 212, 255, 0.22), rgba(53, 212, 255, 0.42));
+  box-shadow: 0 0 18px rgba(53, 212, 255, 0.7), inset 0 0 16px rgba(255, 255, 255, 0.4);
+  pointer-events: none;
+  will-change: transform;
+}
+#collector.boost { border-color: #ffffff; background: radial-gradient(circle, rgba(255, 255, 255, 0.25), rgba(53, 212, 255, 0.55)); }
+
+/* ---------- Tip ---------- */
+#tip {
+  position: absolute;
+  left: 50%;
+  bottom: 190px;
+  transform: translateX(-50%);
+  display: none;
+  max-width: 90vw;
+  text-align: center;
+  font-size: 1.7rem;
+  font-weight: 700;
+  -webkit-text-stroke: 1px rgba(0, 0, 0, 0.7);
+  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.6);
+}
+
+#save-note.saved { color: #7dff9b; }
+
+/* ---------- Touch controls ---------- */
+#joystick, #btn-action, #btn-run, .touch-only { display: none; }
+
+body.touch #joystick {
+  display: block;
+  position: absolute;
+  left: calc(24px + env(safe-area-inset-left, 0px));
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  border: 3px solid rgba(255, 255, 255, 0.5);
+  pointer-events: auto;
+  touch-action: none;
+}
+#stick {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 60px;
+  height: 60px;
+  margin: -30px 0 0 -30px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.7);
+  border: 3px solid #fff;
+}
+body.touch #btn-action, body.touch #btn-run {
+  display: block;
+  position: absolute;
+  right: calc(24px + env(safe-area-inset-right, 0px));
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  font: inherit;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #fff;
+  pointer-events: auto;
+  touch-action: none;
+  border: 4px solid #fff;
+}
+body.touch #btn-action { bottom: calc(40px + env(safe-area-inset-bottom, 0px)); background: #ff9a2e; }
+body.touch #btn-run { bottom: calc(140px + env(safe-area-inset-bottom, 0px)); width: 64px; height: 64px; background: #2d7cf6; font-size: 0.9rem; }
+body.touch #btn-run.on { background: #1fa550; }
+body.touch .touch-only { display: inline; }
+body.touch .desktop-only { display: none; }
+body.touch #bottom { bottom: calc(8px + env(safe-area-inset-bottom, 0px)); }
+body.touch #tip { bottom: 230px; font-size: 1.3rem; }
+body.touch canvas#scene { cursor: default; }
+
+@media (max-width: 900px) {
+  #inventory { top: 110px; }
+}
+
+/* ============ Multiplayer edition additions ============ */
+
+.card {
+  background: rgba(23, 50, 95, 0.85);
+  border: 3px solid #0e2145;
+  border-radius: 16px;
+}
+
+#left-top { position: absolute; left: 14px; top: 12px; display: flex; flex-direction: column; gap: 8px; width: 210px; }
+#playercard { padding: 8px 12px; }
+.pc-name { font-weight: 700; font-size: 1.15rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pc-pet { font-size: 0.85rem; opacity: 0.95; }
+.pc-net { font-size: 0.75rem; margin-top: 2px; color: #ffd9a8; }
+.pc-net.online { color: #7dff9b; }
+
+#toolbar { display: flex; flex-direction: column; gap: 6px; }
+.tool-btn {
+  pointer-events: auto;
+  padding: 7px 12px;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-align: left;
+  color: #fff;
+  background: rgba(36, 69, 127, 0.92);
+  border: 3px solid #3a5fa3;
+  border-radius: 12px;
+  cursor: pointer;
+}
+.tool-btn:hover { filter: brightness(1.15); }
+.tool-btn.on { background: #1fa550; border-color: #6be08f; }
+.tool-btn:focus-visible { outline: 4px solid #fff; outline-offset: 2px; }
+
+/* collector ball: subtle glow when active */
+#collector { opacity: 0.8; }
+#collector.active {
+  opacity: 1;
+  border-color: #aef2ff;
+  animation: ballGlow 1.1s ease-in-out infinite;
+}
+@keyframes ballGlow {
+  0%, 100% { box-shadow: 0 0 14px rgba(53, 212, 255, 0.7), inset 0 0 14px rgba(255, 255, 255, 0.35); }
+  50%      { box-shadow: 0 0 30px rgba(120, 235, 255, 0.95), inset 0 0 22px rgba(255, 255, 255, 0.6); }
+}
+.hotbar-slot.active .slot-ball { box-shadow: 0 0 14px rgba(120, 235, 255, 0.95), inset 0 0 8px rgba(255, 255, 255, 0.7); }
+
+/* hatch announcement */
+#hatch {
+  position: absolute;
+  left: 50%;
+  top: 28%;
+  transform: translateX(-50%);
+  display: none;
+  text-align: center;
+  font-size: 2.2rem;
+  font-weight: 700;
+  -webkit-text-stroke: 1px rgba(0, 0, 0, 0.7);
+  text-shadow: 0 4px 0 rgba(0, 0, 0, 0.6);
+  animation: hatchPop 0.5s ease-out;
+}
+#hatch small { display: block; font-size: 1.1rem; }
+@keyframes hatchPop { 0% { transform: translateX(-50%) scale(0.4); opacity: 0; } 100% { transform: translateX(-50%) scale(1); opacity: 1; } }
+
+/* overlays: menu and pets */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(10, 25, 55, 0.72);
+  overflow-y: auto;
+}
+.overlay[hidden] { display: none; }
+.dialog {
+  width: min(560px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 18px 20px;
+  text-align: center;
+  background: rgba(23, 50, 95, 0.97);
+  border: 4px solid #0e2145;
+  border-radius: 22px;
+}
+.dialog-wide { width: min(720px, 100%); }
+.dialog h1 { margin: 0; font-size: 2rem; color: var(--orange); text-shadow: 0 3px 0 #7a3d00; }
+.dialog h2 { margin: 12px 0 8px; font-size: 1.1rem; }
+.dialog-sub { margin: 4px 0 8px; opacity: 0.85; }
+
+.field { display: block; margin: 10px auto; max-width: 320px; font-weight: 700; text-align: left; }
+.field input {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 1.05rem;
+  color: #17325f;
+  background: #fff8e6;
+  border: 3px solid #3a5fa3;
+  border-radius: 12px;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+#char-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; }
+.char-card {
+  padding: 8px 4px;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #fff;
+  background: rgba(36, 69, 127, 0.9);
+  border: 3px solid #3a5fa3;
+  border-radius: 14px;
+  cursor: pointer;
+}
+.char-card canvas { display: block; width: 72px; height: 96px; margin: 0 auto 4px; }
+.char-card.selected { border-color: #ffe14d; background: #2d5399; box-shadow: 0 0 12px rgba(255, 225, 77, 0.7); }
+.char-card:focus-visible { outline: 4px solid #fff; outline-offset: 2px; }
+
+.net-status { margin: 12px 0 4px; font-size: 0.85rem; color: #ffd9a8; }
+.net-status.online { color: #7dff9b; }
+.play-btn { max-width: 260px; margin: 8px auto 0; display: block; font-size: 1.2rem; background: #1fa550; border-color: #6be08f; }
+
+#pets-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; margin: 10px 0; }
+.pet-card {
+  padding: 8px;
+  font: inherit;
+  color: #fff;
+  text-align: center;
+  background: rgba(36, 69, 127, 0.9);
+  border: 3px solid var(--rc, #3a5fa3);
+  border-radius: 14px;
+  cursor: pointer;
+}
+.pet-card.equipped { background: #1f6b3a; box-shadow: 0 0 12px rgba(125, 255, 155, 0.7); }
+.pet-card b { display: block; font-size: 1rem; }
+.pet-card .pet-rarity { font-size: 0.75rem; font-weight: 700; color: var(--rc, #fff); }
+.pet-card .pet-bonus { font-size: 0.75rem; opacity: 0.9; }
+.pet-empty { grid-column: 1 / -1; opacity: 0.8; }
+
+body.touch #btn-jump {
+  display: block;
+  position: absolute;
+  right: calc(120px + env(safe-area-inset-right, 0px));
+  bottom: calc(40px + env(safe-area-inset-bottom, 0px));
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  font: inherit;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #fff;
+  background: #1fa550;
+  border: 4px solid #fff;
+  pointer-events: auto;
+  touch-action: none;
+}
+#btn-jump { display: none; }
+
+@media (max-width: 900px) {
+  #left-top { width: 170px; }
+  .tool-btn { font-size: 0.75rem; padding: 6px 8px; }
+  #inventory { top: 252px; }
+}
+
+/* ============ Sessions and obby additions ============ */
+.pc-session { font-size: 0.8rem; margin-top: 2px; color: #b8d4ff; }
+
+.session-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; margin: 6px 0; }
+.session-row .or { font-weight: 700; opacity: 0.8; }
+.session-row input {
+  width: 120px;
+  padding: 9px 10px;
+  font: inherit;
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-align: center;
+  text-transform: uppercase;
+  color: #17325f;
+  background: #fff8e6;
+  border: 3px solid #3a5fa3;
+  border-radius: 12px;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.session-btn { width: auto; padding: 9px 16px; }
+.session-btn.join { background: #1f6fd0; border-color: #7bb3ff; }
+.session-btn.leave { background: #8a2a2a; border-color: #d98a8a; }
+
+#session-info { margin: 8px 0; padding: 10px; background: rgba(31, 165, 80, 0.2); border: 3px solid #6be08f; border-radius: 14px; }
+#session-info[hidden], #host-join[hidden], #rules-help[hidden] { display: none; }
+.session-code-label { font-size: 0.85rem; opacity: 0.9; }
+.session-code-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px; margin-top: 6px; }
+.session-code { font-size: 2.2rem; font-weight: 700; letter-spacing: 0.25em; color: #ffe14d; text-shadow: 0 3px 0 rgba(0, 0, 0, 0.5); }
+
+.rules-help { margin: 10px 0; padding: 10px; text-align: left; font-size: 0.85rem; background: rgba(140, 40, 40, 0.35); border: 3px solid #d98a8a; border-radius: 14px; }
+.rules-help pre { margin: 8px 0; padding: 8px; font-size: 0.8rem; color: #d8ffd0; background: #0d1a33; border-radius: 8px; overflow-x: auto; user-select: text; -webkit-user-select: text; }
+
+#cp-btn { display: none; position: absolute; left: 50%; bottom: 150px; transform: translateX(-50%); width: auto; padding: 8px 16px; background: #c25a1a; border-color: #ffb36b; }
+body.touch #cp-btn { bottom: 230px; }
+
+  </style>
+</head>
+<body>
+  <!-- The 3D canvas is added here by the script -->
+
+  <div id="hud">
+    <!-- Top centre: coins and stats -->
+    <div id="topbar">
+      <div class="pill pill-money"><span class="pill-label">Coins</span><span id="money">$0</span></div>
+      <div class="pill-row">
+        <div class="pill"><span class="pill-label">Juice per second</span><span id="jps">$0/s</span></div>
+        <div class="pill"><span class="pill-label">Fruits collected</span><span id="total-fruits">0</span></div>
+        <div class="pill pill-rebirth"><span class="pill-label">Rebirths</span><span id="rebirths">0 (x1)</span></div>
+      </div>
+    </div>
+
+    <!-- Top left: player card and toggles -->
+    <div id="left-top">
+      <div class="card" id="playercard">
+        <div class="pc-name" id="pc-name">Player</div>
+        <div class="pc-pet">Pet: <span id="pc-pet">none</span></div>
+        <div class="pc-session" id="pc-session">Not in a session</div>
+        <div class="pc-net" id="pc-net">Connecting...</div>
+      </div>
+      <div id="toolbar">
+        <button id="tg-auto" class="tool-btn" type="button">Auto Collect: OFF</button>
+        <button id="tg-fp" class="tool-btn" type="button">First Person: OFF</button>
+        <button id="btn-pets" class="tool-btn" type="button">Pets</button>
+        <button id="btn-char" class="tool-btn" type="button">Menu / Session</button>
+      </div>
+    </div>
+
+    <div id="inventory"></div>
+
+    <div id="upgrade-panel" class="card">
+      <h2>Upgrades</h2>
+      <div id="upgrade-list"></div>
+      <div id="rebirth-box">
+        <button id="rebirth-btn" class="hud-btn" type="button">Rebirth</button>
+        <p id="rebirth-info"></p>
+      </div>
+      <button id="reset-btn" class="hud-btn hud-btn-small" type="button">Reset save</button>
+    </div>
+
+    <div id="feedback"></div>
+    <div id="collector"></div>
+    <div id="tip"></div>
+    <div id="hatch"></div>
+    <button id="cp-btn" class="hud-btn" type="button">Back to checkpoint (R)</button>
+
+    <!-- Touch controls (iPad / phone) -->
+    <div id="joystick"><div id="stick"></div></div>
+    <button id="btn-action" type="button">Use</button>
+    <button id="btn-jump" type="button">Jump</button>
+    <button id="btn-run" type="button">Run</button>
+
+    <!-- Bottom bar -->
+    <div id="bottom">
+      <button id="slot1" class="hotbar-slot equipped" type="button" aria-label="Collector ball (press 1)">
+        <span class="slot-key">1</span><span class="slot-ball"></span>
+      </button>
+      <p class="controls">
+        <span class="desktop-only"><b>WASD</b> move &nbsp; <b>Space</b> jump &nbsp; <b>Shift</b> run &nbsp; <b>Right-drag</b> look &nbsp; <b>Scroll</b> zoom &nbsp; <b>Hold click</b> or click the ball to collect &nbsp; <b>E</b> Juicenator &nbsp; <b>C</b> auto collect &nbsp; <b>V</b> first person &nbsp; <b>R</b> obby checkpoint</span>
+        <span class="touch-only"><b>Joystick</b> move &nbsp; <b>Jump</b> / <b>Run</b> buttons &nbsp; <b>Two fingers</b> look and zoom &nbsp; <b>Touch and drag</b> over fruit to collect</span>
+        <br>Stand on a pad to buy &nbsp;&middot;&nbsp; <span id="save-note">Game saves automatically</span>
+      </p>
+    </div>
+  </div>
+
+  <!-- Pets panel -->
+  <div id="pets-panel" class="overlay" hidden>
+    <div class="dialog">
+      <h2>Your Pets</h2>
+      <p class="dialog-sub">Tap a pet to equip it. Hatch more from the eggs near the Juicenator, or win them in the obby.</p>
+      <div id="pets-list"></div>
+      <button id="pets-close" class="hud-btn" type="button">Close</button>
+    </div>
+  </div>
+
+  <!-- Menu: name, character and multiplayer session -->
+  <div id="menu" class="overlay">
+    <div class="dialog dialog-wide">
+      <h1>Fruit Juice Tycoon</h1>
+      <p class="dialog-sub">Multiplayer Edition</p>
+      <label class="field">Username
+        <input id="name-input" type="text" maxlength="14" autocomplete="off" spellcheck="false" placeholder="Your name">
+      </label>
+      <h2>Pick your character</h2>
+      <div id="char-grid"></div>
+
+      <h2>Multiplayer session</h2>
+      <p id="net-status" class="net-status">Connecting to the multiplayer server...</p>
+
+      <div id="host-join" class="session-row">
+        <button id="host-btn" class="hud-btn session-btn" type="button">Host a session</button>
+        <span class="or">or</span>
+        <input id="code-input" type="text" maxlength="6" autocomplete="off" spellcheck="false" placeholder="CODE" aria-label="Session code">
+        <button id="join-btn" class="hud-btn session-btn join" type="button">Join</button>
+      </div>
+
+      <div id="session-info" hidden>
+        <div class="session-code-label">Your session code (send it to your friends)</div>
+        <div class="session-code-row">
+          <span id="session-code" class="session-code">------</span>
+          <button id="copy-btn" class="hud-btn session-btn" type="button">Copy code</button>
+          <button id="leave-btn" class="hud-btn session-btn leave" type="button">Leave session</button>
+        </div>
+      </div>
+
+      <div id="rules-help" class="rules-help" hidden>
+        <div>Paste this in <b>Firebase Console &rsaquo; Realtime Database &rsaquo; Rules</b> and press <b>Publish</b>:</div>
+        <pre id="rules-text"></pre>
+        <button id="copy-rules" class="hud-btn session-btn" type="button">Copy rules</button>
+      </div>
+
+      <button id="play-btn" class="hud-btn play-btn" type="button">Play solo</button>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+"use strict";
+
+/* =========================================================
+   Fruit Juice Tycoon: Multiplayer Edition (single file)
+   Three.js draws the 3D world. Firebase Realtime Database syncs a
+   SESSION: the host shares a 6-letter code, friends type it in and
+   load into the same world.
+
+   - A giant tree-house. The elevator is inside the trunk, and the fruit
+     floors ring the tree. One floor per fruit tier.
+   - Every tree stands in a glass case. Fruit drops, bounces, rolls down a
+     chute, through a filter, into that tree's fruit box.
+   - Collect fruit ONLY with the 2D collector ball (slot 1).
+   - Drop all your fruit into the Juicenator for coins.
+   - Buy trees, tree levels and production speed on the three pads in front
+     of each tree. Hatch pets, run the 3 obby courses, rebirth for x2 money.
+   ========================================================= */
+
+/* ---------- Firebase configuration ---------- */
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAIRPHSucN8qVs8cavYm-FihNYvSle-DBg",
+  authDomain: "fjtycoon-14443.firebaseapp.com",
+  databaseURL: "https://fjtycoon-14443-default-rtdb.firebaseio.com",
+  projectId: "fjtycoon-14443",
+  storageBucket: "fjtycoon-14443.firebasestorage.app",
+  messagingSenderId: "115910143656",
+  // This is the iOS app ID. For best results register a Web app in the Firebase
+  // console (Project settings > Your apps > Add app > Web) and paste its appId here.
+  appId: "1:115910143656:ios:b05c207379902813d69c9d"
+};
+const FIREBASE_VERSION = "10.12.2";
+
+/* ---------- Config ---------- */
+
+const SAVE_KEY = "fruitJuiceTycoonMP_save_v2";
+const isTouch = ("ontouchstart" in window) || (typeof navigator !== "undefined" && navigator.maxTouchPoints > 0);
+if (isTouch && document.body.classList) document.body.classList.add("touch");
+
+// Lower limits on iPad / phones so it stays smooth
+const PERF = isTouch
+  ? { balls: 28, flying: 40, pixel: 1.5, shadow: 1024, remotes: 12 }
+  : { balls: 50, flying: 90, pixel: 2, shadow: 2048, remotes: 30 };
+
+const BASE_DROP = 4.5;          // seconds between fruit drops at the start (slow!)
+const MIN_DROP = 1.0;
+const FRUIT_R = 0.55;
+const GRAVITY = 44;             // fruit gravity (heavier)
+const HERO_G = 46;
+const JUMP_V = 19;
+const STEP = 0.7;               // how high you can step up
+const FLOOR_GAP = 28;           // height between floors
+const ELEV_SPEED = 12;
+
+/* ---------- Game data ---------- */
+
+const LEVELS = [
+  { name: "Floor 1", cost: 0,    fruits: ["apple", "orange", "lemon", "lime", "raspberry"] },
+  { name: "Floor 2", cost: 90000, fruits: ["cherry", "blueberry", "peach", "pear", "plum"] },
+  { name: "Floor 3", cost: 6e6,  fruits: ["cranberry", "coconut", "pineapple", "mango", "dragonfruit"] }
+];
+
+// value = coins per fruit, cost = price of its tree, style = tree shape
+const FRUITS = {
+  apple:       { name: "Apple",       color: "#e53935", value: 4,     cost: 0,    style: "tree" },
+  orange:      { name: "Orange",      color: "#fb8c00", value: 10,    cost: 150,  style: "tree" },
+  lemon:       { name: "Lemon",       color: "#fdd835", value: 22,    cost: 900,  style: "tree" },
+  lime:        { name: "Lime",        color: "#7ed321", value: 40,    cost: 4500, style: "tree" },
+  raspberry:   { name: "Raspberry",   color: "#d81b60", value: 75,    cost: 20000, style: "bush" },
+
+  cherry:      { name: "Cherry",      color: "#b3122b", value: 140,   cost: 120000,  style: "tree" },
+  blueberry:   { name: "Blueberry",   color: "#3b5bdb", value: 240,   cost: 400000,  style: "bush" },
+  peach:       { name: "Peach",       color: "#ffab76", value: 380,   cost: 1.2e6,   style: "tree" },
+  pear:        { name: "Pear",        color: "#c5d84a", value: 600,   cost: 3.5e6,   style: "tree" },
+  plum:        { name: "Plum",        color: "#7b2d8e", value: 950,   cost: 10e6,    style: "tree" },
+
+  cranberry:   { name: "Cranberry",   color: "#9b1c31", value: 1700,  cost: 30e6,  style: "bush" },
+  coconut:     { name: "Coconut",     color: "#7a4a24", value: 2800,  cost: 90e6,  style: "palm" },
+  pineapple:   { name: "Pineapple",   color: "#f2c230", value: 4600,  cost: 250e6, style: "bush" },
+  mango:       { name: "Mango",       color: "#ff9f1c", value: 7500,  cost: 700e6, style: "tree" },
+  dragonfruit: { name: "Dragonfruit", color: "#ff3d9a", value: 13000, cost: 2e9,   style: "bush" }
+};
+const FRUIT_IDS = LEVELS.flatMap((L) => L.fruits);
+
+LEVELS.forEach((L, li) => L.fruits.forEach((id, j) => {
+  const f = FRUITS[id];
+  f.id = id; f.level = li; f.slot = j;
+  f.treeName = f.name + (f.style === "bush" ? " Bush" : f.style === "palm" ? " Palm" : " Tree");
+  f.lvlBase = Math.max(60, Math.round(f.cost * 0.5));     // price of tree level 1
+  f.spdBase = Math.max(100, Math.round(f.cost * 0.8));    // price of production speed 1
+}));
+
+/* Pets: small bonuses, five rarity tiers */
+const RARITIES = [
+  { name: "Common",    color: "#b8c4d6" },
+  { name: "Uncommon",  color: "#6fe07a" },
+  { name: "Rare",      color: "#4fa8ff" },
+  { name: "Epic",      color: "#c06bff" },
+  { name: "Legendary", color: "#ffb53d" }
+];
+const PETS = {
+  bunny:   { name: "Bunny",   rarity: 0, color: 0xf2f2f2, ears: "long",   bonus: { type: "speed", amount: 0.03 } },
+  chick:   { name: "Chick",   rarity: 0, color: 0xffe14d, ears: "none",   bonus: { type: "value", amount: 0.03 } },
+  frog:    { name: "Frog",    rarity: 0, color: 0x6fcf58, ears: "round",  bonus: { type: "auto",  amount: 0.06 } },
+  kitty:   { name: "Kitty",   rarity: 1, color: 0xf3a65a, ears: "point",  bonus: { type: "speed", amount: 0.05 } },
+  puppy:   { name: "Puppy",   rarity: 1, color: 0xb98a5a, ears: "floppy", bonus: { type: "value", amount: 0.06 } },
+  panda:   { name: "Panda",   rarity: 2, color: 0xeeeeee, ears: "round",  bonus: { type: "auto",  amount: 0.14 } },
+  fox:     { name: "Fox",     rarity: 2, color: 0xff7a2e, ears: "point",  bonus: { type: "speed", amount: 0.08 } },
+  unicorn: { name: "Unicorn", rarity: 3, color: 0xffd6f0, ears: "horn",   bonus: { type: "value", amount: 0.12 } },
+  dragon:  { name: "Dragon",  rarity: 3, color: 0xd9433a, ears: "horns",  wings: true, bonus: { type: "auto", amount: 0.25 } },
+  phoenix: { name: "Phoenix", rarity: 4, color: 0xffb02e, ears: "none",   wings: true, bonus: { type: "value", amount: 0.25 } }
+};
+const PET_IDS = Object.keys(PETS);
+const BONUS_TEXT = { speed: "move speed", value: "fruit value", auto: "auto collect" };
+
+/* Eggs: cost coins, hatch into a random pet. odds are per rarity tier. */
+const EGGS = [
+  { id: "basic",  name: "Basic Egg",  cost: 3000,  color: 0xf4ead2, spot: 0x8ac4ff, odds: [70, 24, 5.5, 0.5, 0] },
+  { id: "golden", name: "Golden Egg", cost: 75000, color: 0xffd24d, spot: 0xff8a2e, odds: [10, 40, 35, 13, 2] }
+];
+
+/* Playable characters */
+const CHARACTERS = [
+  { id: "bacon",  name: "Bacon Boy", skin: 0xf4f4ee, hair: { style: "swoop", color: 0xa9672b, dark: 0x8a4f1e }, shirt: 0x2f86d1, jacket: 0x1b1b1f, graphic: true, pants: 0x1f2d26, shoes: 0xf4f4ee },
+  { id: "spike",  name: "Spike",     skin: 0xf1c8a0, hair: { style: "spiky", color: 0x3a7bd5 },                  shirt: 0xe94560, jacket: null,     pants: 0x2b3a67, shoes: 0x222222 },
+  { id: "sunny",  name: "Sunny",     skin: 0xe8b48a, hair: { style: "long",  color: 0xf2c14e },                  shirt: 0xffffff, jacket: 0xf28c28, pants: 0x3d5a80, shoes: 0xffffff },
+  { id: "ranger", name: "Ranger Joe", skin: 0xc68642, hair: { style: "cap",  color: 0x2e7d32 },                  shirt: 0x7cb342, jacket: null,     pants: 0x5d4037, shoes: 0x3e2723 },
+  { id: "pinky",  name: "Pinky",     skin: 0xffdbac, hair: { style: "buns",  color: 0xff6fa5 },                  shirt: 0xff9ecd, jacket: null,     pants: 0x6a4c93, shoes: 0xffffff },
+  { id: "shadow", name: "Shadow",    skin: 0xd9d9d9, hair: { style: "hood",  color: 0x25262e },                  shirt: 0x3b3d4a, jacket: 0x14151a, pants: 0x14151a, shoes: 0xb11226 }
+];
+const CHAR_BY_ID = Object.fromEntries(CHARACTERS.map((c) => [c.id, c]));
+
+/* ---------- Player state ---------- */
+
+const player = { money: 0, fruits: {}, totalFruits: 0, rebirths: 0 };
+const owned = {};          // trees you have bought
+const treeState = {};      // per tree: lvl (value) and spd (production speed)
+FRUIT_IDS.forEach((id) => { player.fruits[id] = 0; owned[id] = FRUITS[id].cost === 0; treeState[id] = { lvl: 0, spd: 0 }; });
+const levelState = LEVELS.map((L, i) => ({ owned: i === 0, rise: i === 0 ? 1 : 0 }));
+
+const profile = { name: "", character: "bacon", confirmed: false };
+const petsOwned = {};      // pet id -> how many hatched
+let equippedPet = null;
+const settings = { autoCollect: false, firstPerson: false };
+const obbyState = { ready: [0, 0, 0] };     // when each obby course can pay out again
+
+// The Juicenator's queue: fruit you dropped in that is still being juiced
+const juicer = { queueFruits: 0, queueValue: 0, paid: 0, popTimer: 0, autoTimer: 0, fill: 0.25, busy: false, splash: 0 };
+
+/* Global upgrades. They scale aggressively. */
+const upgrades = {
+  fruitValue: {
+    name: "Fruit Value Upgrade",
+    level: 0, baseCost: 400, currentCost: 400, growth: 2.3,
+    effect: (l) => `All fruit worth x${(1 + 0.5 * l).toFixed(1)} (+50% per level)`
+  },
+  juiceSpeed: {
+    name: "Juice Maker Speed Upgrade",
+    level: 0, baseCost: 250, currentCost: 250, growth: 2.1,
+    effect: (l) => `Juicenator juices ${formatNumber(3 * (1 + 0.6 * l))} fruit per second`
+  },
+  autoCollector: {
+    name: "Auto Collector",
+    level: 0, baseCost: 600, currentCost: 600, growth: 2.3,
+    effect: (l) => `Auto collect: ${(0.4 + 0.7 * l).toFixed(1)} fruit per second`
+  },
+  autoJuicer: {
+    name: "Auto Juicer",
+    level: 0, baseCost: 1500, currentCost: 1500, growth: 2.4,
+    effect: (l) => l === 0 ? "Drops your fruit into the Juicenator by itself" : `Auto-juices every ${autoJuiceInterval().toFixed(1)} seconds`
+  }
+};
+const UPGRADE_KEYS = Object.keys(upgrades);
+
+/* ---------- Economy formulas ---------- */
+
+const petBonus = (type) => {
+  const p = equippedPet && PETS[equippedPet];
+  return p && p.bonus.type === type ? p.bonus.amount : 0;
+};
+const rebirthMultiplier    = () => Math.pow(2, player.rebirths);              // x2 per rebirth
+const rebirthCost          = () => 30e6 * Math.pow(4, player.rebirths);
+const fruitValueMultiplier = () => 1 + 0.5 * upgrades.fruitValue.level;
+const moneyMultiplier      = () => fruitValueMultiplier() * rebirthMultiplier() * (1 + petBonus("value"));
+const fruitWorth           = (id) => FRUITS[id].value * (1 + 0.4 * treeState[id].lvl) * moneyMultiplier();
+const treeLevelCost        = (id) => Math.ceil(FRUITS[id].lvlBase * Math.pow(1.9, treeState[id].lvl));
+const treeSpeedCost        = (id) => Math.ceil(FRUITS[id].spdBase * Math.pow(2.1, treeState[id].spd));
+const dropInterval         = (id) => Math.max(MIN_DROP, BASE_DROP * Math.pow(0.88, treeState[id].spd));
+const juiceRate            = () => 3 * (1 + 0.6 * upgrades.juiceSpeed.level);                // fruit per second
+const autoCollectRate      = () => (0.4 + 0.7 * upgrades.autoCollector.level) * (1 + petBonus("auto"));
+const autoJuiceInterval    = () => Math.max(0.5, 8 / (1 + 0.7 * Math.max(0, upgrades.autoJuicer.level - 1)));
+
+// Coins per second if every dropped fruit gets collected and juiced
+function potentialIncome() {
+  let total = 0;
+  FRUIT_IDS.forEach((id) => {
+    if (owned[id] && levelState[FRUITS[id].level].owned) total += fruitWorth(id) / dropInterval(id);
+  });
+  return total;
+}
+
+/* ---------- Helpers ---------- */
+
+function formatNumber(n) {
+  if (!isFinite(n)) return "0";
+  if (n >= 1e12) return (n / 1e12).toFixed(2) + "T";
+  if (n >= 1e9) return (n / 1e9).toFixed(2) + "B";
+  if (n >= 1e6) return (n / 1e6).toFixed(2) + "M";
+  if (n >= 1e4) return (n / 1e3).toFixed(1) + "K";
+  return Number(n.toFixed(1)).toLocaleString();
+}
+const formatMoney = (n) => "$" + formatNumber(n);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const rand = (a, b) => a + Math.random() * (b - a);
+const totalInInventory = () => FRUIT_IDS.reduce((s, id) => s + player.fruits[id], 0);
+const floorH = (i) => 0.3 + FLOOR_GAP * i;
+const angleLerp = (a, b, t) => a + Math.atan2(Math.sin(b - a), Math.cos(b - a)) * t;
+
+// Seeded random for scenery, so every player in a session sees exactly the same world
+let _seed = 20241031;
+function srand(a = 0, b = 1) {
+  _seed = (_seed * 1664525 + 1013904223) % 4294967296;
+  return a + (_seed / 4294967296) * (b - a);
+}
+
+
+/* =========================================================
+   3D SCENE
+   ========================================================= */
+
+const renderer = new THREE.WebGLRenderer({ antialias: !isTouch });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, PERF.pixel));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.domElement.id = "scene";
+document.body.prepend(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x6cc4f5);
+scene.fog = new THREE.Fog(0x8fd4f7, 160, 520);
+
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 900);
+
+scene.add(new THREE.HemisphereLight(0xdff3ff, 0x4a8f5a, 0.9));
+const sun = new THREE.DirectionalLight(0xffffff, 0.8);
+sun.castShadow = true;
+sun.shadow.mapSize.set(PERF.shadow, PERF.shadow);
+Object.assign(sun.shadow.camera, { left: -50, right: 50, top: 50, bottom: -50, near: 1, far: 200 });
+scene.add(sun);
+scene.add(sun.target);
+
+// Ground: green checker tiles like a Roblox baseplate
+(function buildGround() {
+  const c = document.createElement("canvas");
+  c.width = c.height = 128;
+  const g = c.getContext("2d");
+  g.fillStyle = "#2f9e5a"; g.fillRect(0, 0, 128, 128);
+  g.fillStyle = "#2a9153"; g.fillRect(0, 0, 64, 64); g.fillRect(64, 64, 64, 64);
+  g.strokeStyle = "rgba(0,0,0,0.12)"; g.lineWidth = 2; g.strokeRect(0, 0, 128, 128);
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(190, 190);
+  tex.magFilter = THREE.NearestFilter;
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(1140, 1140), new THREE.MeshLambertMaterial({ map: tex }));
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.set(80, 0, 0);
+  ground.receiveShadow = true;
+  scene.add(ground);
+})();
+
+// Clouds
+const clouds = [];
+for (let i = 0; i < 16; i++) {
+  const cloud = new THREE.Group();
+  const mat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+  for (let j = 0; j < 4; j++) {
+    const b = new THREE.Mesh(new THREE.BoxGeometry(12 + srand(0, 8), 4, 8 + srand(0, 4)), mat);
+    b.position.set(j * 8 - 12, srand(0, 2), srand(0, 4));
+    cloud.add(b);
+  }
+  cloud.position.set(srand(-300, 500), 170 + srand(0, 25), srand(-300, 300));
+  scene.add(cloud);
+  clouds.push(cloud);
+}
+
+/* ---------- Shared geometry and materials (keeps iPad fast) ---------- */
+
+const matCache = {}, boxGeoCache = {};
+const getMat = (c) => matCache[c] || (matCache[c] = new THREE.MeshLambertMaterial({ color: c }));
+const getBoxGeo = (w, h, d) => {
+  const k = w + "|" + h + "|" + d;
+  return boxGeoCache[k] || (boxGeoCache[k] = new THREE.BoxGeometry(w, h, d));
+};
+
+// own = true gives the mesh its own material so its colour can change
+function box(w, h, d, color, x = 0, y = 0, z = 0, own = false) {
+  const m = new THREE.Mesh(getBoxGeo(w, h, d), own ? new THREE.MeshLambertMaterial({ color }) : getMat(color));
+  m.position.set(x, y, z);
+  m.castShadow = true;
+  m.receiveShadow = true;
+  return m;
+}
+
+/* ---------- Text labels (canvas sprites) ---------- */
+
+const allLabels = [];
+const LABEL_FONT = '"Fredoka", "Trebuchet MS", Verdana, sans-serif';
+
+function makeLabel(scaleX = 9, scaleY = 2.8) {
+  const c = document.createElement("canvas");
+  c.width = 512; c.height = 160;
+  const tex = new THREE.CanvasTexture(c);
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
+  sprite.scale.set(scaleX, scaleY, 1);
+  sprite.userData.label = { canvas: c, tex, key: "" };
+  allLabels.push(sprite);
+  return sprite;
+}
+
+// lines: [[text, color, fontSizePx], ...]
+function setLabel(sprite, lines) {
+  const L = sprite.userData.label;
+  const key = JSON.stringify(lines);
+  if (key === L.key) return;
+  L.key = key;
+  const ctx = L.canvas.getContext("2d");
+  ctx.clearRect(0, 0, 512, 160);
+  ctx.fillStyle = "rgba(14, 33, 69, 0.82)";
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(6, 6, 500, 148, 28); else ctx.rect(6, 6, 500, 148);
+  ctx.fill();
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  lines.forEach(([text, color, size], i) => {
+    ctx.font = `700 ${size}px ${LABEL_FONT}`;
+    ctx.fillStyle = color;
+    ctx.fillText(text, 256, (160 * (i + 1)) / (lines.length + 1));
+  });
+  L.tex.needsUpdate = true;
+}
+
+if (document.fonts && document.fonts.load) {
+  document.fonts.load('700 40px "Fredoka"').then(() => allLabels.forEach((s) => { s.userData.label.key = ""; })).catch(() => {});
+}
+
+/* =========================================================
+   AVATARS: blocky Roblox-style characters
+   ========================================================= */
+
+const headGeo = new THREE.CylinderGeometry(0.82, 0.82, 1.6, 24);
+const handGeo = new THREE.SphereGeometry(0.43, 10, 8);
+const facePlane = new THREE.PlaneGeometry(1.5, 1.5);
+let faceMat = null;
+const decalCache = {};
+
+function faceDecal() {
+  if (!faceMat) {
+    const fc = document.createElement("canvas");
+    fc.width = fc.height = 128;
+    const fg = fc.getContext("2d");
+    fg.fillStyle = "#15151a";
+    fg.beginPath(); fg.ellipse(46, 54, 5, 9, 0, 0, Math.PI * 2); fg.fill();
+    fg.beginPath(); fg.ellipse(82, 54, 5, 9, 0, 0, Math.PI * 2); fg.fill();
+    fg.strokeStyle = "#15151a"; fg.lineWidth = 6; fg.lineCap = "round";
+    fg.beginPath(); fg.moveTo(38, 80); fg.quadraticCurveTo(64, 106, 90, 80); fg.stroke();
+    faceMat = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(fc), transparent: true });
+  }
+  const m = new THREE.Mesh(facePlane, faceMat);
+  m.position.set(0, 4.95, 0.83);
+  return m;
+}
+
+function shirtDecal(def) {
+  if (!decalCache[def.id]) {
+    const sc = document.createElement("canvas");
+    sc.width = sc.height = 128;
+    const sg = sc.getContext("2d");
+    sg.fillStyle = "#" + def.shirt.toString(16).padStart(6, "0"); sg.fillRect(0, 0, 128, 128);
+    sg.fillStyle = "#1c2733";
+    sg.beginPath(); sg.ellipse(64, 70, 36, 28, -0.3, 0, Math.PI * 2); sg.fill();
+    sg.fillRect(34, 44, 60, 14);
+    sg.fillStyle = "#9fd0f5";
+    sg.fillRect(48, 66, 10, 6); sg.fillRect(72, 74, 12, 5);
+    decalCache[def.id] = new THREE.MeshLambertMaterial({ map: new THREE.CanvasTexture(sc) });
+  }
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 1.0), decalCache[def.id]);
+  m.position.set(0, 3.2, 0.51);
+  return m;
+}
+
+function addHair(g, hair, P) {
+  const B = getBoxGeo, C = hair.color, D = hair.dark || hair.color;
+  const tilt = (m, rz) => { m.rotation.z = rz; g.add(m); };
+  switch (hair.style) {
+    case "swoop":
+      g.add(P(B(1.8, 0.4, 1.8), C, 0, 5.85, 0));
+      g.add(P(B(1.8, 1.0, 0.4), D, 0, 5.4, -0.78));
+      g.add(P(B(0.35, 0.9, 1.4), D, -0.9, 5.35, -0.05));
+      g.add(P(B(0.35, 0.9, 1.4), D, 0.9, 5.35, -0.05));
+      tilt(P(B(1.2, 0.38, 0.5), C, -0.35, 5.7, 0.8), 0.35);
+      tilt(P(B(0.9, 0.32, 0.45), D, 0.4, 5.78, 0.8), -0.25);
+      tilt(P(B(0.55, 0.55, 0.45), C, -0.9, 5.45, 0.68), 0.45);
+      tilt(P(B(0.75, 0.4, 0.9), C, 0.2, 6.1, 0.15), -0.2);
+      tilt(P(B(0.6, 0.7, 0.6), D, -1.0, 5.65, 0.35), 0.25);
+      break;
+    case "spiky":
+      g.add(P(B(1.8, 0.4, 1.8), C, 0, 5.85, 0));
+      [[0, 6.35, 0, 0], [-0.6, 6.25, 0.2, 0.4], [0.6, 6.25, 0.2, -0.4], [-0.3, 6.25, -0.5, 0.25], [0.4, 6.3, -0.45, -0.3]]
+        .forEach(([x, y, z, rz]) => tilt(P(B(0.45, 0.9, 0.45), C, x, y, z), rz));
+      break;
+    case "long":
+      g.add(P(B(1.8, 0.4, 1.8), C, 0, 5.85, 0));
+      g.add(P(B(1.9, 2.6, 0.45), C, 0, 4.7, -0.8));
+      g.add(P(B(0.4, 1.7, 1.2), C, -0.92, 5.0, -0.15));
+      g.add(P(B(0.4, 1.7, 1.2), C, 0.92, 5.0, -0.15));
+      g.add(P(B(1.8, 0.35, 0.5), C, 0, 5.65, 0.8));
+      break;
+    case "cap":
+      g.add(P(B(1.95, 0.7, 1.95), C, 0, 5.95, 0));
+      g.add(P(B(1.6, 0.15, 1.1), C, 0, 5.68, 1.2));
+      g.add(P(B(1.7, 0.6, 0.3), 0x5d4037, 0, 5.35, -0.8));
+      break;
+    case "buns":
+      g.add(P(B(1.8, 0.4, 1.8), C, 0, 5.85, 0));
+      g.add(P(B(1.8, 0.35, 0.5), C, 0, 5.65, 0.8));
+      g.add(P(B(1.8, 0.9, 0.4), C, 0, 5.4, -0.78));
+      [-0.95, 0.95].forEach((x) => { const s = new THREE.Mesh(new THREE.SphereGeometry(0.5, 10, 8), getMat(C)); s.position.set(x, 6.2, 0); s.castShadow = true; g.add(s); });
+      break;
+    case "hood":
+      g.add(P(B(2.0, 0.5, 2.0), C, 0, 5.9, 0));
+      g.add(P(B(2.0, 1.7, 0.4), C, 0, 5.0, -0.9));
+      g.add(P(B(0.4, 1.7, 1.9), C, -0.95, 5.0, 0));
+      g.add(P(B(0.4, 1.7, 1.9), C, 0.95, 5.0, 0));
+      break;
+    default: break;
+  }
+}
+
+/* Builds an avatar from a character definition. Faces +z. */
+function buildAvatar(def) {
+  const g = new THREE.Group();
+  const limbs = {};
+  const B = getBoxGeo;
+  const P = (geo, color, x, y, z) => {
+    const m = new THREE.Mesh(geo, getMat(color));
+    m.position.set(x, y, z);
+    m.castShadow = true;
+    return m;
+  };
+
+  g.add(P(headGeo, def.skin, 0, 4.95, 0));
+  g.add(faceDecal());
+  addHair(g, def.hair, P);
+
+  g.add(P(B(2.0, 2.0, 1.0), def.shirt, 0, 3.1, 0));
+  if (def.graphic) g.add(shirtDecal(def));
+  if (def.jacket) {
+    g.add(P(B(2.1, 2.05, 0.2), def.jacket, 0, 3.1, -0.5));
+    g.add(P(B(0.72, 2.05, 1.1), def.jacket, -0.7, 3.1, 0));
+    g.add(P(B(0.72, 2.05, 1.1), def.jacket, 0.7, 3.1, 0));
+    g.add(P(B(1.1, 0.25, 0.3), def.jacket, 0, 4.05, 0.4));
+  }
+
+  const sleeve = def.jacket || def.shirt;
+  const arm = (x) => {
+    const pv = new THREE.Group();
+    pv.position.set(x, 4.05, 0);
+    pv.add(P(B(0.95, 1.1, 0.95), sleeve, 0, -0.55, 0));
+    pv.add(P(B(0.78, 0.8, 0.78), def.skin, 0, -1.5, 0));
+    pv.add(P(handGeo, def.skin, 0, -2.05, 0));
+    g.add(pv);
+    return pv;
+  };
+  limbs.armL = arm(-1.55);
+  limbs.armR = arm(1.55);
+
+  const leg = (x) => {
+    const pv = new THREE.Group();
+    pv.position.set(x, 2.05, 0);
+    pv.add(P(B(0.95, 1.55, 0.95), def.pants, 0, -0.775, 0));
+    pv.add(P(B(1.0, 0.5, 1.3), def.shoes, 0, -1.8, 0.14));
+    g.add(pv);
+    return pv;
+  };
+  limbs.legL = leg(-0.5);
+  limbs.legR = leg(0.5);
+  return { group: g, limbs };
+}
+
+/* =========================================================
+   PETS and EGGS: small low-poly models
+   ========================================================= */
+
+function buildPet(id) {
+  const def = PETS[id];
+  const g = new THREE.Group();
+  const col = def.color;
+  const sph = (r, color, x, y, z) => {
+    const m = new THREE.Mesh(new THREE.SphereGeometry(r, 10, 8), getMat(color));
+    m.position.set(x, y, z);
+    m.castShadow = true;
+    g.add(m);
+    return m;
+  };
+  sph(0.62, col, 0, 0.75, 0);          // body
+  sph(0.46, col, 0, 1.45, 0.3);        // head
+  g.add(box(0.1, 0.16, 0.06, 0x15151a, -0.17, 1.52, 0.72));   // eyes
+  g.add(box(0.1, 0.16, 0.06, 0x15151a, 0.17, 1.52, 0.72));
+  g.add(box(0.14, 0.1, 0.1, 0xff8aa0, 0, 1.36, 0.74));        // nose
+  const earMat = def.ears;
+  if (earMat === "long") { g.add(box(0.18, 0.8, 0.14, col, -0.2, 2.1, 0.2)); g.add(box(0.18, 0.8, 0.14, col, 0.2, 2.1, 0.2)); }
+  else if (earMat === "point") {
+    [-1, 1].forEach((s) => { const e = box(0.22, 0.36, 0.12, col, 0.27 * s, 1.92, 0.2); e.rotation.z = -0.3 * s; g.add(e); });
+  } else if (earMat === "round") { sph(0.2, col, -0.32, 1.78, 0.2); sph(0.2, col, 0.32, 1.78, 0.2); }
+  else if (earMat === "floppy") {
+    [-1, 1].forEach((s) => { const e = box(0.16, 0.5, 0.2, 0x7a5230, 0.46 * s, 1.5, 0.25); e.rotation.z = 0.25 * s; g.add(e); });
+  } else if (earMat === "horn") {
+    const h = new THREE.Mesh(new THREE.CylinderGeometry(0.0, 0.1, 0.6, 8), getMat(0xffe14d));
+    h.position.set(0, 2.15, 0.35); g.add(h);
+  } else if (earMat === "horns") {
+    [-1, 1].forEach((s) => { const h = new THREE.Mesh(new THREE.CylinderGeometry(0.0, 0.1, 0.5, 8), getMat(0xf2e4c2)); h.position.set(0.25 * s, 1.95, 0.25); h.rotation.z = -0.25 * s; g.add(h); });
+  }
+  g.add(box(0.2, 0.2, 0.4, col, 0, 0.75, -0.68));             // tail
+  if (def.wings) {
+    [-1, 1].forEach((s) => { const w = box(0.9, 0.08, 0.5, def.rarity === 4 ? 0xff6a1a : 0xa02a2a, 0.75 * s, 1.0, -0.15); w.rotation.z = 0.35 * s; g.add(w); w.userData.wing = s; });
+  }
+  // rarity ring on the ground
+  const ring = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.75, 0.05, 20),
+    new THREE.MeshLambertMaterial({ color: RARITIES[def.rarity].color, transparent: true, opacity: 0.55 }));
+  ring.position.y = 0.03;
+  g.add(ring);
+  return g;
+}
+
+// A pet follows its owner: behind and to the right, bobbing as it hops along
+function followPet(pet, ownerPos, facing, dt, t) {
+  const ox = Math.cos(facing) * 2.4 - Math.sin(facing) * -2.6;
+  const oz = -Math.sin(facing) * 2.4 + Math.cos(facing) * -2.6;
+  const k = 1 - Math.exp(-6 * dt);
+  const tx = ownerPos.x + ox, tz = ownerPos.z + oz;
+  const moved = Math.hypot(tx - pet.position.x, tz - pet.position.z);
+  pet.position.x += (tx - pet.position.x) * k;
+  pet.position.z += (tz - pet.position.z) * k;
+  pet.position.y += (ownerPos.y - pet.position.y) * Math.min(1, dt * 10) + (moved > 0.4 ? Math.abs(Math.sin(t * 9)) * 0.06 : 0);
+  pet.rotation.y = angleLerp(pet.rotation.y, Math.atan2(ownerPos.x - pet.position.x, ownerPos.z - pet.position.z), Math.min(1, dt * 6));
+  pet.children.forEach((c) => { if (c.userData.wing) c.rotation.z = c.userData.wing * (0.35 + Math.sin(t * 8) * 0.25); });
+}
+
+function buildEgg(egg) {
+  const g = new THREE.Group();
+  const shell = new THREE.Mesh(new THREE.SphereGeometry(1.4, 14, 12), new THREE.MeshLambertMaterial({ color: egg.color }));
+  shell.scale.set(1, 1.3, 1);
+  shell.castShadow = true;
+  g.add(shell);
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2;
+    const spot = new THREE.Mesh(new THREE.SphereGeometry(0.28, 8, 6), getMat(egg.spot));
+    spot.position.set(Math.sin(a) * 1.3, Math.sin(i * 2) * 0.9, Math.cos(a) * 1.3);
+    g.add(spot);
+  }
+  return g;
+}
+
+
+/* =========================================================
+   WORLD: a giant tree-house. The elevator is inside the trunk and
+   each floor is a wooden ring around the tree.
+   ========================================================= */
+
+const colliders = [];       // solid boxes (may be rotated): {x,z,hw,hd,theta,h,lv}
+const surfaces = [];        // things you can stand on
+const obbyBoxes = [];       // solid obby platform sides and fences
+const flying = [];          // fruit on stands / chutes
+const collecting = [];      // collected fruit flying to the player
+const juiceBalls = [];      // fruit dropped into the Juicenator (physics)
+const coinFx = [];          // coin burst
+const slots = {};           // per fruit: stand geometry, tree model, timer
+const bins = {};            // per fruit: its own fruit box
+const treePads = [];        // 3 pads per tree
+const levelPads = [];       // gold pads that buy floors
+const callPads = [];        // elevator call pads
+const levelGroups = [];
+
+const TAU = Math.PI * 2;
+const wrapAng = (a) => Math.atan2(Math.sin(a), Math.cos(a));
+
+/* ---------- Surfaces: rectangles, circles and rings ---------- */
+
+function addSurface(def) {
+  const s = Object.assign({ type: "rect", x: 0, z: 0, hw: 0, hd: 0, top: 0, lv: -1, dx: 0, dz: 0, theta: 0 }, def);
+  if (s.type === "rect" && s.theta) { s.c = Math.cos(s.theta); s.s = Math.sin(s.theta); }
+  surfaces.push(s);
+  return s;
+}
+function inSurface(s, x, z) {
+  if (s.type === "ring") { const r = Math.hypot(x - s.x, z - s.z); return r >= s.r0 && r <= s.r1; }
+  if (s.type === "circle") return Math.hypot(x - s.x, z - s.z) <= s.r;
+  const dx = x - s.x, dz = z - s.z;
+  if (s.theta) { const lx = dx * s.c - dz * s.s, lz = dx * s.s + dz * s.c; return Math.abs(lx) <= s.hw && Math.abs(lz) <= s.hd; }
+  return Math.abs(dx) <= s.hw && Math.abs(dz) <= s.hd;
+}
+const surfaceActive = (s) => s.lv < 0 || (levelState[s.lv].owned && levelState[s.lv].rise >= 1);
+
+// The highest surface under (x, z) that is not above your feet by more than a step
+let lastSupport = null;
+function supportY(x, z, y) {
+  let best = 0;
+  lastSupport = null;
+  for (const s of surfaces) {
+    if (s.top <= best || s.top > y + STEP) continue;
+    if (!inSurface(s, x, z) || !surfaceActive(s)) continue;
+    best = s.top;
+    lastSupport = s;
+  }
+  return best;
+}
+
+/* ---------- Layout ---------- */
+
+const R_ELEV = 13.4;                 // elevator platform radius
+const R_INNER = 13.5;                // ring deck starts here (inside the doorways)
+const R_WALL = 16;                   // outside face of the trunk wall
+const R_OUT = 56;                    // outer edge of every floor
+const R_RAIL = 55.4;
+const DOORS = 5;                     // doorways into the trunk, between the fruit stands
+const doorAngle = (k) => (k * TAU) / DOORS;
+const doorDist = (ang) => { let m = 9; for (let k = 0; k < DOORS; k++) m = Math.min(m, Math.abs(wrapAng(ang - doorAngle(k)))); return m; };
+const LOOKOUTS = [(144 * Math.PI) / 180, (288 * Math.PI) / 180];
+// where the railing is open: the lookout bridges, and the entrance on the ground floor
+function gapOpen(i, ang) {
+  for (const a of LOOKOUTS) if (Math.abs(wrapAng(ang - a)) < 0.2) return true;
+  return i === 0 && Math.abs(wrapAng(ang)) < 0.5;
+}
+
+/* A fruit module: stand, glass case, chute, filter, fruit box and 3 pads.
+   Its local +z points away from the trunk. Local coordinates, rotated by phi. */
+const MOD = { tz: 24, podiumFrontZ: 27.5, filterZ: 30.5, chuteEndZ: 34, binZ0: 34.4, binZ1: 41.6, binCz: 38, bhw: 7, padZ: 47.5 };
+const modAngle = (k) => ((36 + 72 * k) * Math.PI) / 180;
+const modWorld = (m, lx, lz) => ({ x: lx * m.cos + lz * m.sin, z: -lx * m.sin + lz * m.cos });
+const modLocal = (m, wx, wz) => ({ x: wx * m.cos - wz * m.sin, z: wx * m.sin + wz * m.cos });
+
+/* ---------- Pad helper ---------- */
+
+function makePad(parent, x, y, z, size, labelY, labelScale = [7, 2.2]) {
+  const pad = new THREE.Group();
+  pad.position.set(x, y, z);
+  const plate = box(size, 0.35, size, 0x2d7cf6, 0, 0.18, 0, true);
+  plate.castShadow = false;
+  pad.add(plate);
+  pad.add(box(size + 0.4, 0.2, size + 0.4, 0x17325f, 0, 0.1, 0));
+  const label = makeLabel(labelScale[0], labelScale[1]);
+  label.position.set(0, labelY, 0);
+  pad.add(label);
+  parent.add(pad);
+  return { group: pad, plate, label, x, z, wx: x, wz: z, h: y, cooldown: 0, warn: 0 };
+}
+
+/* ---------- Glass and railing helpers ---------- */
+
+const glassMat = new THREE.MeshLambertMaterial({ color: 0xaee7ff, transparent: true, opacity: 0.2, depthWrite: false, side: THREE.DoubleSide });
+const FRAME = 0x2c3e66;
+const glassPanel = (w, h, d, x, y, z) => {
+  const m = new THREE.Mesh(getBoxGeo(w, h, d), glassMat);
+  m.position.set(x, y, z);
+  return m;
+};
+
+function makeRingGeo(r0, r1, depth) {
+  const shape = new THREE.Shape();
+  shape.absarc(0, 0, r1, 0, TAU, false);
+  const hole = new THREE.Path();
+  hole.absarc(0, 0, r0, 0, TAU, true);
+  shape.holes.push(hole);
+  return new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false, curveSegments: 56 });
+}
+const deckGeo = makeRingGeo(R_INNER, R_OUT, 1.2);
+
+/* ---------- Tree models ---------- */
+
+const DROP_Y = { tree: 6.2, bush: 3.2, palm: 7 };
+const fruitGeo = new THREE.SphereGeometry(FRUIT_R, 10, 8);
+const fruitMats = {};
+FRUIT_IDS.forEach((id) => { fruitMats[id] = new THREE.MeshLambertMaterial({ color: FRUITS[id].color }); });
+
+function buildTreeModel(id) {
+  const f = FRUITS[id];
+  const g = new THREE.Group();
+  const mat = fruitMats[id];
+  const addFruit = (x, y, z, r) => {
+    const m = new THREE.Mesh(new THREE.SphereGeometry(r, 7, 5), mat);
+    m.position.set(x, y, z);
+    g.add(m);
+  };
+  const decorate = (size, y, count) => {
+    const half = size / 2;
+    for (let i = 0; i < count; i++) {
+      const t = srand(-1, 1), side = Math.floor(srand(0, 4));
+      const px = side < 2 ? (side === 0 ? half : -half) : t * half;
+      const pz = side < 2 ? t * half : (side === 2 ? half : -half);
+      addFruit(px, y + srand(-0.5, 0.5), pz, f.style === "bush" ? 0.38 : 0.45);
+    }
+  };
+  if (f.style === "palm") {
+    g.add(box(1.3, 2.6, 1.3, 0x8a5a2b, 0, 1.3, 0));
+    g.add(box(1.1, 2.6, 1.1, 0x7a4d24, 0.2, 3.9, 0));
+    g.add(box(0.9, 2.4, 0.9, 0x8a5a2b, 0.4, 6.4, 0));
+    const top = 7.9;
+    for (let k = 0; k < 6; k++) {
+      const a = (k / 6) * TAU, sx = Math.sin(a), sz = Math.cos(a);
+      const inner = box(0.9, 0.3, 2.0, 0x2f9e3f, 0.4 + sx * 0.9, top, sz * 0.9);
+      inner.rotation.y = a;
+      g.add(inner);
+      const outer = box(0.8, 0.3, 1.6, 0x3cb54e, 0.4 + sx * 2.1, top - 0.6, sz * 2.1);
+      outer.rotation.y = a;
+      g.add(outer);
+    }
+    [[-0.4, 0.6], [0.8, 0.5], [0.3, -0.7], [1.0, -0.3]].forEach(([dx, dz]) => addFruit(0.4 + dx, top - 0.9, dz, 0.6));
+  } else if (f.style === "bush") {
+    [[5.4, 0x2a8f3a, 0.85], [4.0, 0x34a548, 2.5], [2.6, 0x40bb55, 4.0]].forEach(([size, color, y]) => {
+      g.add(box(size, size === 5.4 ? 1.7 : 1.6, size, color, 0, y, 0));
+      decorate(size, y, 5);
+    });
+  } else {
+    g.add(box(1.2, 3.4, 1.2, 0x7a4a1e, 0, 1.7, 0));
+    [[5.2, 0x2f9e3f, 4.2], [4.0, 0x38b04a, 5.9], [2.6, 0x43c257, 7.4]].forEach(([size, color, y]) => {
+      g.add(box(size, 1.8, size, color, 0, y, 0));
+      decorate(size, y, 5);
+    });
+  }
+  return g;
+}
+
+/* ---------- A floor: a wooden ring around the trunk ---------- */
+
+function buildFloor(i) {
+  const L = LEVELS[i], h = floorH(i);
+  const group = new THREE.Group();
+  group.visible = levelState[i].owned;
+  scene.add(group);
+  levelGroups.push(group);
+
+  // the ring deck, with a hole in the middle for the elevator inside the trunk
+  const deck = new THREE.Mesh(deckGeo, getMat(0x8a6a1f));
+  deck.rotation.x = -Math.PI / 2;
+  deck.position.y = h - 1.2;
+  deck.receiveShadow = true;
+  group.add(deck);
+  addSurface({ type: "ring", x: 0, z: 0, r0: R_INNER, r1: R_OUT, top: h, lv: i });
+
+  // plank lines and support beams back to the trunk
+  for (let k = 0; k < 20; k++) {
+    const a = (k / 20) * TAU + 0.15;
+    const line = box(0.14, 0.05, R_OUT - R_WALL, 0x6e5218, Math.sin(a) * 36, h + 0.03, Math.cos(a) * 36);
+    line.rotation.y = a;
+    line.castShadow = false; line.receiveShadow = false;
+    group.add(line);
+  }
+  for (let k = 0; k < 10; k++) {
+    const a = (k / 10) * TAU;
+    const beam = box(2.4, 2.4, 42, 0x5e4020, Math.sin(a) * 36, h - 2.6, Math.cos(a) * 36);
+    beam.rotation.y = a;
+    beam.castShadow = false;
+    group.add(beam);
+  }
+
+  // round glass railing with gaps for the bridges (and the entrance on the ground floor)
+  const SEG = 48, segW = (TAU * R_RAIL) / SEG;
+  for (let k = 0; k < SEG; k++) {
+    const a = ((k + 0.5) / SEG) * TAU;
+    if (gapOpen(i, a)) continue;
+    const x = Math.sin(a) * R_RAIL, z = Math.cos(a) * R_RAIL;
+    const gl = glassPanel(segW * 0.98, 2.6, 0.2, x, h + 1.4, z); gl.rotation.y = a; group.add(gl);
+    const rail = box(segW * 0.98, 0.22, 0.3, 0x6b4a1a, x, h + 2.8, z); rail.rotation.y = a; rail.castShadow = false; group.add(rail);
+    if (k % 2 === 0) group.add(box(0.4, 3, 0.4, 0x6b4a1a, Math.sin(a - Math.PI / SEG) * R_RAIL, h + 1.5, Math.cos(a - Math.PI / SEG) * R_RAIL));
+  }
+
+  // two wooden bridges out to little lookout huts
+  LOOKOUTS.forEach((a) => {
+    const sx = Math.sin(a), sz = Math.cos(a);
+    const br = box(3.6, 0.4, 16, 0x9a7330, sx * 64, h - 0.2, sz * 64); br.rotation.y = a; br.castShadow = false; group.add(br);
+    addSurface({ type: "rect", x: sx * 64, z: sz * 64, hw: 1.8, hd: 8, theta: a, top: h, lv: i });
+    [-1.7, 1.7].forEach((side) => {
+      const rope = box(0.12, 0.12, 16, 0xd9c28a, sx * 64 + Math.cos(a) * side, h + 1.5, sz * 64 - Math.sin(a) * side);
+      rope.rotation.y = a; group.add(rope);
+      for (let k = 0; k < 4; k++) {
+        const t = 58.4 + k * 4.9;
+        group.add(box(0.25, 1.6, 0.25, 0x6b4a1a, sx * t + Math.cos(a) * side, h + 0.8, sz * t - Math.sin(a) * side));
+      }
+    });
+    const lx = sx * 79, lz = sz * 79;
+    const pl = new THREE.Mesh(new THREE.CylinderGeometry(7, 7, 0.6, 18), getMat(0x8a6a1f));
+    pl.position.set(lx, h - 0.3, lz); pl.receiveShadow = true; group.add(pl);
+    addSurface({ type: "circle", x: lx, z: lz, r: 7, top: h, lv: i });
+    // a tiny hut: four posts and a roof
+    [[-4, -4], [4, -4], [-4, 4], [4, 4]].forEach(([dx, dz]) => group.add(box(0.5, 5, 0.5, 0x6b4a1a, lx + dx, h + 2.5, lz + dz)));
+    group.add(box(10, 0.6, 10, 0x2f9e3f, lx, h + 5.3, lz));
+    group.add(box(8, 0.5, 8, 0x43c257, lx, h + 5.9, lz));
+  });
+
+  // vines under the deck edge
+  for (let k = 0; k < 12; k++) {
+    const a = srand(0, TAU), len = srand(3, 9);
+    if (gapOpen(i, a)) continue;
+    group.add(box(0.3, len, 0.3, 0x2f8f3a, Math.sin(a) * 55.6, h - 1.3 - len / 2, Math.cos(a) * 55.6));
+    if (srand() < 0.6) group.add(box(1.3, 0.9, 1.3, 0x43c257, Math.sin(a) * 55.6, h - 1.3 - len, Math.cos(a) * 55.6));
+  }
+
+  // one module per fruit
+  L.fruits.forEach((id, j) => {
+    const f = FRUITS[id];
+    const phi = modAngle(j);
+    const mod = { id, level: i, phi, cos: Math.cos(phi), sin: Math.sin(phi), group: new THREE.Group(), h };
+    mod.group.rotation.y = phi;
+    group.add(mod.group);
+    const mg = mod.group, tz = MOD.tz;
+
+    const s = {
+      id, level: i, mod, h, x: 0, zTree: tz,
+      podiumTop: h + 4, podiumFrontZ: MOD.podiumFrontZ, filterZ: MOD.filterZ, chuteEndZ: MOD.chuteEndZ,
+      timer: srand(0, BASE_DROP), flash: 0
+    };
+    slots[id] = s;
+
+    mg.add(box(7, 4, 7, 0x6b7b99, 0, h + 2, tz));          // stand
+
+    // glass case: the front is open at the bottom so fruit can roll out
+    mg.add(glassPanel(0.2, 10, 7.6, -3.8, h + 9, tz));
+    mg.add(glassPanel(0.2, 10, 7.6, 3.8, h + 9, tz));
+    mg.add(glassPanel(7.6, 10, 0.2, 0, h + 9, tz - 3.8));
+    mg.add(glassPanel(7.6, 8.6, 0.2, 0, h + 9.7, tz + 3.8));
+    mg.add(glassPanel(7.6, 0.2, 7.6, 0, h + 14.1, tz));
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => mg.add(box(0.45, 10, 0.45, FRAME, sx * 3.8, h + 9, tz + sz * 3.8)));
+    [-1, 1].forEach((sd) => {
+      mg.add(box(7.6, 0.45, 0.45, FRAME, 0, h + 14.1, tz + sd * 3.8));
+      mg.add(box(0.45, 0.45, 7.6, FRAME, sd * 3.8, h + 14.1, tz));
+    });
+    const cw = modWorld(mod, 0, tz);
+    colliders.push({ x: cw.x, z: cw.z, hw: 3.9, hd: 3.9, theta: phi, c: mod.cos, s: mod.sin, h, lv: i });
+
+    const tree = buildTreeModel(id);
+    tree.position.set(0, h + 4, tz);
+    tree.visible = false;
+    tree.userData.grow = 1;
+    mg.add(tree);
+    s.tree = tree;
+
+    // chute
+    const ang = Math.atan2(1.6, 6.5), clen = Math.hypot(6.5, 1.6);
+    const chute = new THREE.Group();
+    chute.position.set(0, h + 3.1, tz + 7.75);
+    chute.rotation.x = ang;
+    chute.add(box(2.6, 0.2, clen, 0x9aa7bd));
+    chute.add(box(0.25, 0.7, clen, 0x5d6b88, -1.4, 0.35, 0));
+    chute.add(box(0.25, 0.7, clen, 0x5d6b88, 1.4, 0.35, 0));
+    mg.add(chute);
+
+    // filter gate with a coloured curtain
+    const filter = new THREE.Group();
+    filter.position.set(0, h + 3.26, s.filterZ);
+    filter.add(box(0.4, 2.8, 0.5, FRAME, -1.75, 1.4, 0));
+    filter.add(box(0.4, 2.8, 0.5, FRAME, 1.75, 1.4, 0));
+    const bar = box(4.1, 0.5, 0.6, FRAME, 0, 2.8, 0, true);
+    filter.add(bar);
+    const stripMat = new THREE.MeshLambertMaterial({ color: f.color, transparent: true, opacity: 0.55 });
+    for (let k = -2; k <= 2; k++) {
+      const strip = new THREE.Mesh(getBoxGeo(0.4, 2.3, 0.12), stripMat);
+      strip.position.set(k * 0.7, 1.45, 0);
+      filter.add(strip);
+    }
+    mg.add(filter);
+    s.filterBar = bar;
+
+    const label = makeLabel(7, 2.1);
+    label.position.set(0, h + 16.4, tz);
+    label.visible = false;
+    mg.add(label);
+    s.label = label;
+
+    // this tree's own fruit box
+    const bin = new THREE.Group();
+    bin.add(box(MOD.bhw * 2, 0.5, 7.2, 0x5a3f12, 0, h + 0.25, MOD.binCz));
+    bin.add(box(MOD.bhw * 2, 1.8, 0.6, 0x8a5a24, 0, h + 0.9, MOD.binZ0 - 0.3));
+    bin.add(box(MOD.bhw * 2, 1.2, 0.6, 0x8a5a24, 0, h + 0.6, MOD.binZ1 + 0.3));
+    bin.add(box(0.6, 1.6, 7.8, 0x8a5a24, -MOD.bhw - 0.3, h + 0.8, MOD.binCz));
+    bin.add(box(0.6, 1.6, 7.8, 0x8a5a24, MOD.bhw + 0.3, h + 0.8, MOD.binCz));
+    const blabel = makeLabel(7, 2.1);
+    blabel.position.set(0, h + 5.2, MOD.binCz);
+    bin.add(blabel);
+    mg.add(bin);
+    const bw = modWorld(mod, 0, MOD.binCz);
+    colliders.push({ x: bw.x, z: bw.z, hw: MOD.bhw + 0.9, hd: 3.9, theta: phi, c: mod.cos, s: mod.sin, h, lv: i });
+    // balls = fruit physically lying in the box; stock = extra fruit waiting to drop in
+    bins[id] = { mod, group: bin, label: blabel, balls: [], stock: 0, refill: 0 };
+
+    // three pads in front of the box: buy tree / level up / production speed
+    ["tree", "level", "speed"].forEach((kind, k) => {
+      const pad = makePad(mg, (k - 1) * 4.6, h, MOD.padZ, 3.2, k === 1 ? 5.4 : 3.5, [5.6, 1.9]);
+      const w = modWorld(mod, (k - 1) * 4.6, MOD.padZ);
+      pad.wx = w.x; pad.wz = w.z;
+      pad.kind = kind; pad.id = id; pad.level = i;
+      treePads.push(pad);
+    });
+  });
+
+  // elevator call pads next to each doorway
+  for (let k = 0; k < DOORS; k++) {
+    const a = doorAngle(k);
+    const pad = makePad(group, Math.sin(a) * 20, h, Math.cos(a) * 20, 3.0, 3.2, [4.6, 1.5]);
+    pad.level = i;
+    callPads.push(pad);
+  }
+
+  // gold pad that buys the next floor, in the open space by the front door
+  if (i + 1 < LEVELS.length) {
+    const lp = makePad(group, 0, h, 33, 4.6, 4.6, [7.6, 2.4]);
+    lp.plate.material.color.set(0xffc400);
+    lp.level = i + 1;
+    levelPads[i + 1] = lp;
+  }
+}
+LEVELS.forEach((L, i) => buildFloor(i));
+
+/* ---------- The trunk (with doorways), canopy, branches and roots ---------- */
+
+(function buildGiantTree() {
+  const topH = floorH(LEVELS.length - 1);
+  const slats = 30, pitch = (TAU * 15) / slats;
+  for (let i = 0; i < LEVELS.length; i++) {
+    const h = floorH(i);
+    const y0 = i === 0 ? 0 : h - FLOOR_GAP / 2, y1 = h + FLOOR_GAP / 2 + (i === LEVELS.length - 1 ? 14 : 0);
+    for (let k = 0; k < slats; k++) {
+      const a = (k / slats) * TAU;
+      const x = Math.sin(a) * 15, z = Math.cos(a) * 15;
+      const color = k % 2 ? 0x6b4a26 : 0x5e4020;
+      const w = pitch * 0.66;
+      if (doorDist(a) < 0.3) {
+        // doorway: a base under the deck and a lintel over the door
+        const lo = h - 1.3 - y0, up = y1 - (h + 11);
+        if (lo > 0.2) { const b = box(w, lo, 2.4, color, x, y0 + lo / 2, z); b.rotation.y = a; scene.add(b); }
+        if (up > 0.2) { const b = box(w, up, 2.4, color, x, h + 11 + up / 2, z); b.rotation.y = a; scene.add(b); }
+      } else {
+        const b = box(w, y1 - y0, 2.4, color, x, (y0 + y1) / 2, z); b.rotation.y = a; scene.add(b);
+      }
+    }
+  }
+  // roots at the base, between the doorways
+  for (let k = 0; k < DOORS; k++) {
+    const a = doorAngle(k) + Math.PI / DOORS;
+    const root = box(4, 2.4, 14, 0x5e4020, Math.sin(a) * 21, 1, Math.cos(a) * 21);
+    root.rotation.y = a;
+    scene.add(root);
+  }
+  // big branches and a canopy above the top floor
+  const top = topH + 24;
+  for (let k = 0; k < 8; k++) {
+    const a = (k / 8) * TAU + 0.2;
+    const br = box(5, 4, 46, 0x6b4a26, Math.sin(a) * 34, top, Math.cos(a) * 34);
+    br.rotation.y = a;
+    br.castShadow = false;
+    scene.add(br);
+  }
+  for (let k = 0; k < 22; k++) {
+    const a = srand(0, TAU), r = srand(10, 70), w = srand(30, 56);
+    const leaf = box(w, srand(7, 11), w, [0x2f9e3f, 0x38b04a, 0x2a8f3a][k % 3], Math.sin(a) * r, top + 14 + srand(0, 10), Math.cos(a) * r);
+    leaf.castShadow = false;
+    scene.add(leaf);
+  }
+})();
+
+/* ---------- The elevator, inside the trunk ---------- */
+
+const elevator = new THREE.Group();     // moves up and down; y = platform top
+const elevSurface = addSurface({ type: "circle", x: 0, z: 0, r: R_ELEV, top: 0.3 });
+const elevSelectPads = [];
+(function buildElevator() {
+  const plat = new THREE.Mesh(new THREE.CylinderGeometry(R_ELEV, R_ELEV, 0.7, 32), getMat(0x7d8aa6));
+  plat.position.y = -0.35;
+  plat.receiveShadow = true;
+  elevator.add(plat);
+  const trim = new THREE.Mesh(new THREE.CylinderGeometry(R_ELEV + 0.15, R_ELEV + 0.15, 0.2, 32), getMat(0xffc400));
+  trim.position.y = -0.05;
+  elevator.add(trim);
+  for (let k = 0; k < 4; k++) {
+    const a = (k / 4) * TAU + Math.PI / 4;
+    elevator.add(box(0.5, 4, 0.5, FRAME, Math.sin(a) * 11, 2, Math.cos(a) * 11));
+    elevator.add(box(1.6, 0.6, 1.6, 0xfff2a8, Math.sin(a) * 11, 4.2, Math.cos(a) * 11));
+  }
+  scene.add(elevator);
+  // select-floor pads on the elevator
+  LEVELS.forEach((L, i) => {
+    const p = makePad(elevator, -5 + i * 5, 0, 5, 3.0, 3.4, [4.6, 1.5]);
+    p.floor = i;
+    elevSelectPads.push(p);
+  });
+})();
+
+/* ---------- Elevator state (synced through Firebase) ---------- */
+
+const elev = { from: 0, to: 0, start: 0 };
+let serverOffset = 0;
+const serverNow = () => Date.now() + serverOffset;
+
+function elevDuration() { return Math.abs(floorH(elev.to) - floorH(elev.from)) / ELEV_SPEED; }
+function elevMoving() { return elevDuration() > 0.01 && (serverNow() - elev.start) / 1000 < elevDuration(); }
+function elevY() {
+  const a = floorH(elev.from), b = floorH(elev.to), dur = elevDuration();
+  if (dur < 0.01) return b;
+  const p = clamp((serverNow() - elev.start) / 1000 / dur, 0, 1);
+  const e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+  return a + (b - a) * e;
+}
+const elevFlush = (i) => Math.abs(elevY() - floorH(i)) < 0.7;
+const elevAtAnyFloor = () => LEVELS.some((L, i) => elevFlush(i));
+
+/* =========================================================
+   OUTSIDE THE TREE: Juicenator, pads, eggs, scenery (a big, open map)
+   ========================================================= */
+
+const MACHINE_Z = 118;
+const machine = new THREE.Group();
+machine.position.set(0, 0, MACHINE_Z);
+(function buildJuicenator() {
+  machine.add(box(9, 3, 6, 0x4a5f86, 0, 1.5, 0));
+  machine.add(box(9.4, 0.4, 6.4, 0x2f3d5c, 0, 3.1, 0));
+  const tank = new THREE.Mesh(getBoxGeo(7, 4.5, 4.4),
+    new THREE.MeshLambertMaterial({ color: 0xcdf5d0, transparent: true, opacity: 0.28, depthWrite: false }));
+  tank.position.set(0, 5.5, 0);
+  machine.add(tank);
+  const juice = box(6.6, 1, 4.0, 0x6fd16a, 0, 4, 0, true);
+  juice.castShadow = false;
+  machine.add(juice);
+  machine.add(box(7.6, 0.6, 5, 0x2f3d5c, 0, 8, 0));
+  const hopper = new THREE.Mesh(new THREE.CylinderGeometry(3.2, 1.4, 2.2, 4, 1, true),
+    new THREE.MeshLambertMaterial({ color: 0xff9a2e, side: THREE.DoubleSide }));
+  hopper.rotation.y = Math.PI / 4;
+  hopper.position.set(0, 9.4, 0);
+  machine.add(hopper);
+  machine.add(box(1.2, 1.2, 2.2, 0xff9a2e, 0, 2.2, 3.8));
+  const gears = [];
+  [[-3, 1.6, 0.9], [-1.6, 2.2, 0.55]].forEach(([gx, gy, gr], k) => {
+    const gear = new THREE.Group();
+    gear.position.set(gx, gy, 3.15);
+    const disc = new THREE.Mesh(new THREE.CylinderGeometry(gr, gr, 0.35, 12), getMat(0xd0d6e2));
+    disc.rotation.x = Math.PI / 2;
+    gear.add(disc);
+    for (let t = 0; t < 8; t++) {
+      const a = (t / 8) * TAU;
+      const tooth = box(0.25, 0.3, 0.3, 0xd0d6e2, Math.cos(a) * (gr + 0.1), Math.sin(a) * (gr + 0.1), 0);
+      tooth.rotation.z = a;
+      gear.add(tooth);
+    }
+    machine.add(gear);
+    gears.push({ gear, dir: k === 0 ? 1 : -1.6 });
+  });
+  machine.userData = { shake: 0, juice, gears };
+})();
+const machineLabel = makeLabel(11, 3.6);
+machineLabel.position.set(0, 13.2, 0);
+machine.add(machineLabel);
+scene.add(machine);
+colliders.push({ x: 0, z: MACHINE_Z, hw: 4.6, hd: 3.2, h: 0, lv: -1 });
+const HOPPER_Y = 8.3;
+const SPOUT = { x: 0, y: 2.6, z: MACHINE_Z + 6.2 };
+
+// a dirt path from the spawn to the tree
+(function buildPath() {
+  for (let z = 56; z < 175; z += 4) {
+    const stone = box(6, 0.12, 3, z % 8 === 0 ? 0xb9a37a : 0xc9b48a, 0, 0.06, z);
+    stone.castShadow = false;
+    scene.add(stone);
+  }
+})();
+
+// global upgrade pads (blue), spread out in front of the Juicenator
+const upgradePads = UPGRADE_KEYS.map((key, i) => {
+  const p = makePad(scene, -15 + i * 10, 0, MACHINE_Z + 26, 4.8, 3.8, [7.5, 2.4]);
+  p.key = key;
+  return p;
+});
+
+// pet egg stations, off to the sides
+const eggStations = EGGS.map((egg, i) => {
+  const x = i === 0 ? -55 : 55, z = MACHINE_Z - 6;
+  const pad = makePad(scene, x, 0, z + 9, 4.4, 8.6, [7.6, 2.4]);
+  const holder = new THREE.Group();
+  holder.position.set(x, 0, z);
+  holder.add(box(4, 1.2, 4, 0x6b7b99, 0, 0.6, 0));
+  const model = buildEgg(egg);
+  model.position.y = 3.2;
+  holder.add(model);
+  scene.add(holder);
+  return { egg, pad, holder, model };
+});
+
+// scenery: bushes and rocks scattered around, kept away from everything you use
+(function buildScenery() {
+  for (let k = 0; k < 90; k++) {
+    const x = srand(-330, 150), z = srand(-300, 250);
+    if (Math.hypot(x, z) < 130 || (Math.abs(x) < 90 && z > 60 && z < 210) || x > 130) continue;
+    const s = srand(1.5, 3.6);
+    if (srand() < 0.7) {
+      scene.add(box(s * 1.6, s, s * 1.6, 0x2f9e3f, x, s / 2, z));
+      scene.add(box(s, s * 0.8, s, 0x43c257, x + 0.4, s + s * 0.3, z));
+    } else {
+      scene.add(box(s, s * 0.7, s * 1.2, 0x8d93a3, x, s * 0.35, z));
+    }
+  }
+})();
+
+/* =========================================================
+   OBBY PARK: 3 courses (Easy, Medium, Hard) far to the east.
+   Falling does NOT reset you. Only red barriers do:
+   the red walls around each course and the red sweeping bars.
+   ========================================================= */
+
+const OBBY_X0 = 180;
+const lerp = (a, b, t) => a + (b - a) * t;
+const COURSE_DEFS = [
+  { name: "EASY",   color: "#6fe07a", zc: -110, n: 12, w0: 7,   w1: 5.5, g0: 3.0, g1: 4.2, dy0: 0.5, dy1: 0.9, zig: 2.5, amp: 0, moving: [],               pads: [],       bars: [],       cps: [4, 8],         reward: { coins: 300,  min: 8000,   fruit: 20,  egg: 0 } },
+  { name: "MEDIUM", color: "#ffd84d", zc: 0,    n: 16, w0: 6.5, w1: 5,   g0: 3.8, g1: 5.2, dy0: 0.5, dy1: 1.2, zig: 3,   amp: 6, moving: [5, 6, 10, 11], pads: [13],     bars: [9],      cps: [4, 8, 12],     reward: { coins: 900,  min: 30000,  fruit: 60,  egg: 0 } },
+  { name: "HARD",   color: "#ff6a5a", zc: 110,  n: 20, w0: 5.5, w1: 4.5, g0: 4.2, g1: 6.0, dy0: 0.6, dy1: 1.4, zig: 3.5, amp: 7, moving: [4, 5, 9, 10, 14], pads: [8, 16], bars: [12, 19], cps: [3, 7, 11, 17], reward: { coins: 2400, min: 100000, fruit: 150, egg: 1 } }
+];
+const courses = [];
+let obbyStarted = false;
+
+function mkPlat(course, x, top, z, w, d, color, move) {
+  const m = box(w, 1, d, color, x, top - 0.5, z);
+  scene.add(m);
+  const s = addSurface({ type: "rect", x, z, hw: w / 2, hd: d / 2, top });
+  const col = { x, z, hw: w / 2, hd: d / 2, top, bottom: top - 1 };
+  obbyBoxes.push(col);
+  const p = { mesh: m, s, col, x0: x, z0: z, top, w, d, move };
+  course.plats.push(p);
+  return p;
+}
+
+function mkFlag(course, index, x, top, z) {
+  scene.add(box(0.3, 4, 0.3, 0xeeeeee, x, top + 2, z));
+  const cloth = box(1.8, 1.1, 0.12, 0xd94a3a, x + 1, top + 3.3, z, true);
+  scene.add(cloth);
+  course.flags.push({ index, cloth, x, top, z });
+  course.points[index] = { x, y: top, z };
+}
+
+function mkJumpPad(course, x, top, z, tx, ty, tz) {
+  const T = 1.5;
+  const pad = new THREE.Group();
+  pad.position.set(x, top, z);
+  pad.add(box(3.6, 0.4, 3.6, 0x1fd05a, 0, 0.2, 0));
+  pad.add(box(2.2, 0.15, 2.2, 0xfff2a8, 0, 0.45, 0));
+  scene.add(pad);
+  course.pads.push({ x, z, top, cooldown: 0, vy: (ty - top) / T + 0.5 * HERO_G * T, vx: (tx - x) / T, vz: (tz - z) / T });
+}
+
+function mkBar(course, plat, axis, amp, speed, phase) {
+  const hw = axis === "x" ? 0.8 : plat.w / 2 - 0.4, hd = axis === "x" ? plat.d / 2 - 0.4 : 0.8;
+  const hgt = 2.4;
+  const mesh = new THREE.Mesh(getBoxGeo(hw * 2, hgt, hd * 2), new THREE.MeshLambertMaterial({ color: 0xff2a1a, emissive: 0x880000 }));
+  mesh.position.set(plat.x0, plat.top + hgt / 2, plat.z0);
+  scene.add(mesh);
+  course.bars.push({ mesh, x0: plat.x0, z0: plat.z0, x: plat.x0, z: plat.z0, hw, hd, top: plat.top + hgt, bottom: plat.top, move: { axis, amp, speed, phase } });
+}
+
+function mkBarrier(course, x, z, hw, hd, top) {
+  const mesh = new THREE.Mesh(getBoxGeo(hw * 2, top, hd * 2),
+    new THREE.MeshLambertMaterial({ color: 0xff2a1a, emissive: 0x990000, transparent: true, opacity: 0.4, depthWrite: false }));
+  mesh.position.set(x, top / 2, z);
+  scene.add(mesh);
+  scene.add(box(hw * 2 + 0.2, 0.5, hd * 2 + 0.2, 0xff2a1a, x, top, z));
+  course.barriers.push({ x, z, hw, hd, top });
+  obbyBoxes.push({ x, z, hw, hd, top, bottom: 0 });
+}
+
+function buildCourse(c) {
+  const def = COURSE_DEFS[c], zc = def.zc, X0 = OBBY_X0;
+  const course = { c, def, plats: [], bars: [], barriers: [], pads: [], flags: [], points: [], cp: 0, rect: null, finish: null };
+  courses.push(course);
+
+  mkPlat(course, X0 + 10, 0.3, zc, 14, 14, 0x6b7b99, null);               // start
+  mkFlag(course, 0, X0 + 5, 0.3, zc - 5);
+  let prev = { x: X0 + 10, z: zc, w: 14, top: 0.3 };
+  let maxTop = 0.3;
+
+  for (let k = 1; k <= def.n; k++) {
+    const t = (k - 1) / Math.max(1, def.n - 1);
+    let w = lerp(def.w0, def.w1, t), d = w, gap = lerp(def.g0, def.g1, t);
+    const dy = lerp(def.dy0, def.dy1, t);
+    let z = zc + def.zig * Math.sin(k * 1.1);
+    let color = 0xb9b9c4, top = prev.top + dy, x;
+    const isTarget = def.pads.includes(k), isHost = def.pads.includes(k + 1);
+    const isBars = def.bars.includes(k), isFinish = k === def.n;
+    const move = def.moving.includes(k)
+      ? { axis: "z", amp: def.amp, speed: 0.9 + 0.15 * (k % 3), phase: k % 2 ? 0 : Math.PI }
+      : null;
+
+    if (isTarget) { w = 8; d = 8; z = zc; top = prev.top + 9; x = prev.x + 15; color = 0xd9a441; }
+    else {
+      if (isHost) { w = Math.max(w, 8); d = w; z = zc; color = 0x6b7b99; }
+      if (isBars) { w = 16; d = 10; z = zc; color = 0x6b7b99; }
+      if (isFinish) { w = 10; d = 10; z = zc; color = 0xffc400; top = prev.top + 0.5; }
+      if (move) color = 0xd9a441;
+      x = prev.x + prev.w / 2 + gap + w / 2;
+    }
+    const p = mkPlat(course, x, top, z, w, d, color, move);
+    maxTop = Math.max(maxTop, top);
+
+    if (isTarget) mkJumpPad(course, prev.x, prev.top, prev.z, x, top, z);
+    if (isBars) {
+      mkBar(course, p, "x", 4.6, 1.3 + 0.2 * c, 0);
+      mkBar(course, p, "x", 4.6, 1.3 + 0.2 * c, Math.PI);
+    }
+    const ci = def.cps.indexOf(k);
+    if (ci >= 0 && !move) mkFlag(course, ci + 1, x - w / 2 + 1.2, top, z - d / 2 + 1.2);
+    if (isFinish) {
+      const chest = new THREE.Group();
+      chest.position.set(x + 1, top, z);
+      chest.add(box(2.4, 1.4, 1.6, 0x8a5a24, 0, 0.7, 0));
+      chest.add(box(2.5, 0.6, 1.7, 0xffc400, 0, 1.5, 0));
+      scene.add(chest);
+      const lab = makeLabel(8, 2.4);
+      lab.position.set(x + 1, top + 4.6, z);
+      scene.add(lab);
+      course.finish = { x, z, top, label: lab };
+    }
+    prev = { x, z, w, top, d };
+  }
+
+  // the red barrier fence around the whole course
+  const x1 = prev.x + 18, z0 = zc - 28, z1 = zc + 28, fh = maxTop + 14;
+  course.rect = { x0: X0, x1, z0, z1 };
+  const cx = (X0 + x1) / 2, hw = (x1 - X0) / 2;
+  mkBarrier(course, cx, z0, hw, 0.6, fh);
+  mkBarrier(course, cx, z1, hw, 0.6, fh);
+  mkBarrier(course, x1, zc, 0.6, 28, fh);
+  mkBarrier(course, X0, (z0 + zc - 10) / 2, 0.6, (zc - 10 - z0) / 2, fh);      // west wall, with an
+  mkBarrier(course, X0, (z1 + zc + 10) / 2, 0.6, (z1 - zc - 10) / 2, fh);      // opening by the start
+
+  // entrance sign
+  const sign = makeLabel(9, 3);
+  sign.position.set(X0 - 8, 7, zc);
+  scene.add(sign);
+  setLabel(sign, [[`${def.name} OBBY`, def.color, 64], ["Red barriers send you back", "#ffd9a8", 30], ["Falling is fine. Keep going!", "#b8d4ff", 28]]);
+  scene.add(box(0.6, 6, 0.6, 0x6b4a1a, X0 - 8, 3, zc));
+}
+COURSE_DEFS.forEach((d, c) => buildCourse(c));
+
+
+
+/* =========================================================
+   THE PLAYER (avatar, pet) and movement state
+   ========================================================= */
+
+const hero = new THREE.Group();           // faces +z
+let heroLimbs = null, heroAvatar = null, localPet = null;
+hero.position.set(0, 0, 165);
+scene.add(hero);
+
+const hv = { x: 0, z: 0 };                // horizontal velocity (smooth accel / decel)
+let heroBaseY = 0, heroVy = 0, grounded = true, launchTimer = 0, heroStand = null;
+let heroFacing = Math.PI, walkPhase = 0;
+
+function setHeroCharacter(id) {
+  if (heroAvatar) hero.remove(heroAvatar);
+  const def = CHAR_BY_ID[id] || CHARACTERS[0];
+  const built = buildAvatar(def);
+  heroAvatar = built.group;
+  heroLimbs = built.limbs;
+  heroAvatar.visible = !settings.firstPerson;
+  hero.add(heroAvatar);
+}
+
+function rebuildLocalPet() {
+  if (localPet) scene.remove(localPet);
+  localPet = null;
+  if (equippedPet) {
+    localPet = buildPet(equippedPet);
+    localPet.position.set(hero.position.x + 2, hero.position.y, hero.position.z - 2);
+    scene.add(localPet);
+  }
+}
+
+/* =========================================================
+   FRUIT: drop (with bounce), roll down the chute, through the
+   filter, and into the box where real physics takes over
+   ========================================================= */
+
+const nearFloor = (i) => levelState[i].owned && levelState[i].rise >= 1 && Math.abs(hero.position.y - floorH(i)) < 18 && Math.hypot(hero.position.x, hero.position.z) < 100;
+const dropMesh = (m) => { if (m.parent) m.parent.remove(m); };
+
+function spawnFruit(s) {
+  const f = FRUITS[s.id];
+  const mesh = new THREE.Mesh(fruitGeo, fruitMats[s.id]);
+  mesh.position.set(rand(-1.4, 1.4), s.podiumTop + DROP_Y[f.style] + rand(-0.4, 0.4), s.zTree + rand(-1.4, 1.4));
+  s.mod.group.add(mesh);
+  flying.push({ mesh, s, phase: "fall", vy: 0, vz: 0, filtered: false });
+}
+
+const chuteY = (s, z) => s.podiumTop - (z - s.podiumFrontZ) * (1.6 / 6.5);
+
+function updateFruits(dt) {
+  for (let i = flying.length - 1; i >= 0; i--) {
+    const fr = flying[i], s = fr.s, m = fr.mesh, p = m.position;
+    if (fr.phase === "fall") {
+      // gravity, with a couple of small bounces on the stand
+      fr.vy -= GRAVITY * dt;
+      p.y += fr.vy * dt;
+      p.z += fr.vz * dt;
+      if (p.y <= s.podiumTop + FRUIT_R) {
+        p.y = s.podiumTop + FRUIT_R;
+        if (fr.vy < -4) { fr.vy = -fr.vy * 0.35; fr.vz = 1.2; }
+        else { fr.vy = 0; fr.vz = 2.0; fr.phase = "stand"; }
+      }
+    } else if (fr.phase === "stand") {
+      p.z += fr.vz * dt;
+      p.x += (s.x - p.x) * Math.min(1, dt * 3);
+      m.rotation.x += (fr.vz * dt) / FRUIT_R;
+      if (p.z >= s.podiumFrontZ) fr.phase = "chute";
+    } else {
+      fr.vz += 6.5 * dt;
+      p.z += fr.vz * dt;
+      p.x += (s.x - p.x) * Math.min(1, dt * 6);
+      p.y = chuteY(s, p.z) + FRUIT_R;
+      m.rotation.x += (fr.vz * dt) / FRUIT_R;
+      if (!fr.filtered && p.z >= s.filterZ) { fr.filtered = true; s.flash = 0.3; }
+      if (p.z >= s.chuteEndZ) {
+        // leave the chute and fall into this tree's fruit box
+        const bin = bins[s.id];
+        if (bin.balls.length >= PERF.balls) { dropMesh(m); bin.stock += 1; }
+        else bin.balls.push({ mesh: m, id: s.id, vx: rand(-1.2, 1.2), vy: -fr.vz * 0.246, vz: fr.vz, awake: true, sleep: 0 });
+        flying.splice(i, 1);
+      }
+    }
+  }
+}
+
+function wakeNear(bin, pos, radius) {
+  const r2 = radius * radius;
+  for (const b of bin.balls) {
+    const q = b.mesh.position;
+    const dx = q.x - pos.x, dy = q.y - pos.y, dz = q.z - pos.z;
+    if (dx * dx + dy * dy + dz * dz < r2) { b.awake = true; b.sleep = 0; }
+  }
+}
+
+/* Physics for fruit lying in a box (local coordinates): heavy gravity, friction, small bounces */
+function stepBin(bin, dt) {
+  const h = bin.mod.h;
+  const floor = h + 0.5 + FRUIT_R;
+  const xMax = MOD.bhw - FRUIT_R, zMin = MOD.binZ0 + FRUIT_R, zMax = MOD.binZ1 - FRUIT_R;
+  const wallTop = h + 1.8 + FRUIT_R * 0.6;
+  const balls = bin.balls;
+  const D = FRUIT_R * 2, D2 = D * D;
+
+  // fruit that did not fit earlier drops in from above
+  bin.refill += dt;
+  if (bin.refill > 0.1) {
+    bin.refill = 0;
+    if (bin.stock > 0 && balls.length < PERF.balls) {
+      bin.stock -= 1;
+      const mesh = new THREE.Mesh(fruitGeo, fruitMats[bin.mod.id]);
+      mesh.position.set(rand(-xMax + 1.5, xMax - 1.5), h + 9, rand(MOD.binZ0 + 1, MOD.binZ1 - 1));
+      bin.mod.group.add(mesh);
+      balls.push({ mesh, id: bin.mod.id, vx: 0, vy: 0, vz: 0, awake: true, sleep: 0 });
+    }
+  }
+
+  for (let a = 0; a < balls.length; a++) {
+    const b = balls[a];
+    if (!b.awake) continue;
+    const p = b.mesh.position;
+
+    b.vy -= GRAVITY * dt;
+    p.x += b.vx * dt; p.y += b.vy * dt; p.z += b.vz * dt;
+
+    // floor: small bounce, then roll and slow down (strong friction)
+    let onFloor = false;
+    if (p.y <= floor) {
+      p.y = floor;
+      onFloor = true;
+      if (b.vy < -2) b.vy = -b.vy * 0.35; else b.vy = 0;
+    }
+    if (onFloor) { const f = Math.max(0, 1 - 5 * dt); b.vx *= f; b.vz *= f; }
+
+    // walls (the back wall is open above its top edge so fruit can drop in)
+    if (p.x > xMax) { p.x = xMax; b.vx = -Math.abs(b.vx) * 0.35; }
+    else if (p.x < -xMax) { p.x = -xMax; b.vx = Math.abs(b.vx) * 0.35; }
+    if (p.z > zMax) { p.z = zMax; b.vz = -Math.abs(b.vz) * 0.35; }
+    if (p.z < zMin && p.y < wallTop) { p.z = zMin; b.vz = Math.abs(b.vz) * 0.35; }
+
+    // fruit against fruit
+    for (let o = 0; o < balls.length; o++) {
+      if (o === a) continue;
+      const c = balls[o], q = c.mesh.position;
+      const dx = p.x - q.x, dy = p.y - q.y, dz = p.z - q.z;
+      const d2 = dx * dx + dy * dy + dz * dz;
+      if (d2 >= D2 || d2 < 1e-6) continue;
+      const d = Math.sqrt(d2), overlap = D - d;
+      const nx = dx / d, ny = dy / d, nz = dz / d;
+      const share = c.awake ? 0.5 : 1;
+      p.x += nx * overlap * share; p.y += ny * overlap * share; p.z += nz * overlap * share;
+      if (c.awake) { q.x -= nx * overlap * 0.5; q.y -= ny * overlap * 0.5; q.z -= nz * overlap * 0.5; }
+      const vn = (b.vx - c.vx) * nx + (b.vy - c.vy) * ny + (b.vz - c.vz) * nz;
+      if (vn < 0) {
+        const e = vn < -2.5 ? 0.3 : 0;
+        const imp = -(1 + e) * vn * (c.awake ? 0.5 : 1);
+        b.vx += nx * imp; b.vy += ny * imp; b.vz += nz * imp;
+        if (c.awake) { c.vx -= nx * imp; c.vy -= ny * imp; c.vz -= nz * imp; }
+        else if (vn < -1.5) { c.awake = true; c.sleep = 0; }
+      }
+    }
+
+    b.mesh.rotation.x += (b.vz * dt) / FRUIT_R;
+    b.mesh.rotation.z -= (b.vx * dt) / FRUIT_R;
+
+    if (b.vx * b.vx + b.vy * b.vy + b.vz * b.vz < 0.12) {
+      b.sleep += dt;
+      if (b.sleep > 0.5) { b.awake = false; b.vx = b.vy = b.vz = 0; }
+    } else b.sleep = 0;
+  }
+}
+
+/* =========================================================
+   THE COLLECTOR BALL (the only way to collect fruit)
+   - Hold the mouse button (or touch) to activate it, or click to latch it on.
+   - Fruit under the ball is collected instantly: manual is much faster than auto.
+   ========================================================= */
+
+const collector = { x: 0, y: 0, inside: false, held: false, latched: false, equipped: true };
+const collectorEl = document.getElementById("collector");
+const slotEl = document.getElementById("slot1");
+const pendingPop = {};
+let popTimer = 0;
+let lastCollectTime = -1e9;
+
+const collectorActive = () => collector.equipped && (collector.held || collector.latched);
+const collectorShown = () => collector.equipped && (isTouch ? collector.held : collector.inside);
+const collectorRadius = () => (isTouch ? 54 : 40) * (collectorActive() ? 1.15 : 1);
+
+function updateCollectorUI() {
+  collectorEl.style.display = collectorShown() ? "block" : "none";
+  const r = collectorRadius();
+  collectorEl.style.width = collectorEl.style.height = r * 2 + "px";
+  collectorEl.style.transform = `translate(${collector.x - r}px, ${collector.y - r}px)`;
+  collectorEl.classList.toggle("active", collectorActive());
+  slotEl.classList.toggle("active", collectorActive());
+}
+
+function setEquipped(v) {
+  collector.equipped = v;
+  if (!v) { collector.held = false; collector.latched = false; }
+  slotEl.classList.toggle("equipped", v);
+  if (document.body.classList) document.body.classList.toggle("no-ball", !v);
+  updateCollectorUI();
+}
+
+function binDistance(bin) {
+  const l = modLocal(bin.mod, hero.position.x, hero.position.z);
+  const dx = Math.max(Math.abs(l.x) - MOD.bhw, 0);
+  const dz = Math.max(MOD.binZ0 - l.z, l.z - MOD.binZ1, 0);
+  return Math.hypot(dx, dz);
+}
+const canReachBin = (bin) => nearFloor(bin.mod.level) && binDistance(bin) < 16;
+
+let audioCtx = null, lastPop = 0, soundOn = true;
+function unlockAudio() {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    audioCtx = audioCtx || new AC();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+  } catch (e) { /* no audio */ }
+}
+function playPop() {
+  const now = performance.now();
+  if (!soundOn || !audioCtx || now - lastPop < 45) return;
+  lastPop = now;
+  try {
+    const o = audioCtx.createOscillator(), gn = audioCtx.createGain();
+    o.type = "sine";
+    o.frequency.value = 520 + Math.random() * 320;
+    gn.gain.value = 0.04;
+    o.connect(gn); gn.connect(audioCtx.destination);
+    gn.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.09);
+    o.start(); o.stop(audioCtx.currentTime + 0.1);
+  } catch (e) { /* ignore */ }
+}
+
+function collectBall(bin, index, auto) {
+  const b = bin.balls.splice(index, 1)[0];
+  player.fruits[b.id] += 1;
+  player.totalFruits += 1;
+  wakeNear(bin, b.mesh.position, 2.4);
+  if (auto) { dropMesh(b.mesh); return; }
+  // move it out of the rotated module into the world, then fly it to the player
+  const w = modWorld(bin.mod, b.mesh.position.x, b.mesh.position.z);
+  dropMesh(b.mesh);
+  scene.add(b.mesh);
+  b.mesh.position.set(w.x, b.mesh.position.y, w.z);
+  collecting.push({ mesh: b.mesh, t: 0, from: b.mesh.position.clone() });
+  pendingPop[b.id] = (pendingPop[b.id] || 0) + 1;
+  lastCollectTime = performance.now();
+  playPop();
+}
+
+const _v = new THREE.Vector3();
+// Every frame: fruit under an ACTIVE collector ball gets collected
+function collectUnderPointer() {
+  if (!collectorShown() || !collectorActive()) return;
+  const r = collectorRadius(), r2 = r * r;
+  for (const id of FRUIT_IDS) {
+    const bin = bins[id];
+    if (!bin.balls.length || !canReachBin(bin)) continue;
+    for (let k = bin.balls.length - 1; k >= 0; k--) {
+      const p = bin.balls[k].mesh.position;
+      const w = modWorld(bin.mod, p.x, p.z);
+      _v.set(w.x, p.y, w.z).project(camera);
+      if (_v.z > 1) continue;
+      const sx = (_v.x * 0.5 + 0.5) * window.innerWidth;
+      const sy = (-_v.y * 0.5 + 0.5) * window.innerHeight;
+      const dx = sx - collector.x, dy = sy - collector.y;
+      if (dx * dx + dy * dy <= r2) collectBall(bin, k, false);
+    }
+  }
+}
+
+// Auto collect (toggle): slow compared with the ball. Best fruit first.
+function autoCollect(n) {
+  const byValue = [...FRUIT_IDS].sort((a, b) => FRUITS[b].value - FRUITS[a].value);
+  while (n > 0) {
+    let done = false;
+    for (const id of byValue) {
+      const bin = bins[id];
+      if (!levelState[bin.mod.level].owned) continue;
+      if (bin.balls.length) { collectBall(bin, bin.balls.length - 1, true); done = true; break; }
+      if (bin.stock >= 1) { bin.stock -= 1; player.fruits[id] += 1; player.totalFruits += 1; done = true; break; }
+    }
+    if (!done) break;
+    n -= 1;
+  }
+}
+
+/* =========================================================
+   THE JUICENATOR: drop ALL your fruit in at once (physics), get coins
+   ========================================================= */
+
+function dropAllFruit(auto) {
+  let n = 0, val = 0;
+  const weights = [];
+  FRUIT_IDS.forEach((id) => {
+    const c = Math.floor(player.fruits[id]);
+    if (c > 0) {
+      n += c;
+      val += c * fruitWorth(id);
+      player.fruits[id] -= c;
+      weights.push([id, c]);
+    }
+  });
+  if (n === 0) {
+    if (!auto) showFeedback("No fruit to juice!", "#ffb3b3");
+    return false;
+  }
+  juicer.queueFruits += n;
+  juicer.queueValue += val;
+  machine.userData.shake = 0.35;
+
+  // every fruit tumbles into the hopper at once (up to 60 are drawn)
+  const count = Math.min(60, n);
+  for (let k = 0; k < count; k++) {
+    let r = Math.random() * n, id = weights[0][0];
+    for (const [wid, c] of weights) { r -= c; if (r <= 0) { id = wid; break; } }
+    const mesh = new THREE.Mesh(fruitGeo, fruitMats[id]);
+    mesh.position.set(rand(-2.2, 2.2), 14 + Math.random() * 10, MACHINE_Z + rand(-2.2, 2.2));
+    scene.add(mesh);
+    juiceBalls.push({ mesh, id, vx: rand(-1.5, 1.5), vy: rand(-2, 0), vz: rand(-1.5, 1.5) });
+  }
+  if (!auto) showFeedback(`Dropped ${formatNumber(n)} fruit!`, "#ffe14d");
+  updateHUD();
+  return true;
+}
+
+// Fruit falling into the funnel: gravity, bounces off the funnel walls, then splashes into the tank
+function updateJuiceBalls(dt) {
+  for (let i = juiceBalls.length - 1; i >= 0; i--) {
+    const b = juiceBalls[i], p = b.mesh.position;
+    b.vy -= GRAVITY * dt;
+    p.x += b.vx * dt; p.y += b.vy * dt; p.z += b.vz * dt;
+    if (p.y < 10.6) {
+      const t = clamp((p.y - HOPPER_Y) / 2.3, 0, 1);
+      const hw = 1.0 + t * 1.26 - FRUIT_R;
+      const dz = p.z - MACHINE_Z;
+      if (p.x > hw) { p.x = hw; b.vx = -Math.abs(b.vx) * 0.4; }
+      else if (p.x < -hw) { p.x = -hw; b.vx = Math.abs(b.vx) * 0.4; }
+      if (dz > hw) { p.z = MACHINE_Z + hw; b.vz = -Math.abs(b.vz) * 0.4; }
+      else if (dz < -hw) { p.z = MACHINE_Z - hw; b.vz = Math.abs(b.vz) * 0.4; }
+    }
+    b.mesh.rotation.x += dt * 6;
+    if (p.y <= HOPPER_Y) { scene.remove(b.mesh); juiceBalls.splice(i, 1); juicer.splash = 1; }
+  }
+}
+
+function processJuicer(dt) {
+  if (juicer.queueFruits <= 0) {
+    if (juicer.busy) { juicer.busy = false; coinBurst(); }   // juicing finished
+    return;
+  }
+  juicer.busy = true;
+  const proc = Math.min(juicer.queueFruits, juiceRate() * dt);
+  let pay = juicer.queueValue * (proc / juicer.queueFruits);
+  juicer.queueFruits -= proc;
+  juicer.queueValue -= pay;
+  if (juicer.queueFruits < 1e-6) { pay += juicer.queueValue; juicer.queueFruits = 0; juicer.queueValue = 0; }
+  player.money += pay;
+  juicer.paid += pay;
+}
+
+function flushJuicerPopups(dt) {
+  juicer.popTimer += dt;
+  if (juicer.popTimer >= 0.6 && juicer.paid > 0) {
+    showFeedbackAt(0, 13, MACHINE_Z + 6, `+${formatMoney(juicer.paid)}`, "#ffd84d");
+    juicer.paid = 0;
+    juicer.popTimer = 0;
+  }
+}
+
+/* Coin burst: coins shoot out of the spout, bounce on the ground, then fade */
+const coinGeo = new THREE.CylinderGeometry(0.55, 0.55, 0.16, 12);
+const coinMat = new THREE.MeshLambertMaterial({ color: 0xffc400, emissive: 0x6a4a00 });
+function coinBurst() {
+  const n = isTouch ? 18 : 30;
+  for (let k = 0; k < n && coinFx.length < 60; k++) {
+    const mesh = new THREE.Mesh(coinGeo, coinMat);
+    mesh.position.set(SPOUT.x, SPOUT.y + 1, SPOUT.z);
+    mesh.rotation.x = Math.PI / 2;
+    scene.add(mesh);
+    coinFx.push({ mesh, vx: rand(-9, 9), vy: rand(14, 24), vz: rand(2, 12), life: 0 });
+  }
+}
+
+function updateCoins(dt) {
+  for (let i = coinFx.length - 1; i >= 0; i--) {
+    const c = coinFx[i], p = c.mesh.position;
+    c.life += dt;
+    c.vy -= GRAVITY * dt;
+    p.x += c.vx * dt; p.y += c.vy * dt; p.z += c.vz * dt;
+    if (p.y < 0.3) { p.y = 0.3; c.vy = Math.abs(c.vy) * 0.45; c.vx *= 0.7; c.vz *= 0.7; }
+    c.mesh.rotation.z += dt * 12;
+    if (c.life > 1.6) c.mesh.scale.setScalar(Math.max(0.01, 1 - (c.life - 1.6) / 0.5));
+    if (c.life > 2.1) { scene.remove(c.mesh); coinFx.splice(i, 1); }
+  }
+}
+
+function updateEffects(dt) {
+  for (let i = collecting.length - 1; i >= 0; i--) {
+    const c = collecting[i];
+    c.t += dt / 0.28;
+    const u = Math.min(1, c.t), e = u * u;
+    c.mesh.position.set(
+      c.from.x + (hero.position.x - c.from.x) * e,
+      c.from.y + (hero.position.y + 3.5 - c.from.y) * e,
+      c.from.z + (hero.position.z - c.from.z) * e
+    );
+    c.mesh.scale.setScalar(Math.max(0.05, 1 - 0.8 * u));
+    if (u >= 1) { scene.remove(c.mesh); collecting.splice(i, 1); }
+  }
+  updateJuiceBalls(dt);
+  updateCoins(dt);
+  popTimer += dt;
+  if (popTimer > 0.4) {
+    popTimer = 0;
+    Object.keys(pendingPop).forEach((id) => {
+      if (pendingPop[id] > 0) showFeedback(`+${pendingPop[id]} ${FRUITS[id].name}`, FRUITS[id].color);
+      pendingPop[id] = 0;
+    });
+  }
+}
+
+function clearEffects() {
+  [collecting, juiceBalls, coinFx].forEach((list) => { list.forEach((o) => scene.remove(o.mesh)); list.length = 0; });
+}
+
+/* =========================================================
+   BUYING
+   ========================================================= */
+
+function unlockTree(id, animate) {
+  const t = slots[id].tree;
+  t.visible = true;
+  t.userData.grow = animate ? 0 : 1;
+  t.scale.setScalar(animate ? 0.01 : 1);
+}
+
+function spend(cost) {
+  if (player.money < cost) return false;
+  player.money -= cost;
+  return true;
+}
+
+function buyTree(id) {
+  const f = FRUITS[id];
+  if (owned[id] || !levelState[f.level].owned || !spend(f.cost)) return false;
+  owned[id] = true;
+  unlockTree(id, true);
+  showFeedback(`${f.treeName} unlocked!`, "#ffe14d");
+  updateHUD(); saveGame();
+  return true;
+}
+
+function buyTreeLevel(id) {
+  if (!owned[id] || !spend(treeLevelCost(id))) return false;
+  treeState[id].lvl += 1;
+  showFeedback(`${FRUITS[id].name} level ${treeState[id].lvl}!`, "#ffe14d");
+  updateHUD(); saveGame();
+  return true;
+}
+
+function buyTreeSpeed(id) {
+  if (!owned[id] || dropInterval(id) <= MIN_DROP + 0.001 || !spend(treeSpeedCost(id))) return false;
+  treeState[id].spd += 1;
+  showFeedback(`${FRUITS[id].name} drops faster!`, "#ffe14d");
+  updateHUD(); saveGame();
+  return true;
+}
+
+function buyFloor(i) {
+  const L = LEVELS[i];
+  if (levelState[i].owned || !levelState[i - 1].owned || !spend(L.cost)) return false;
+  levelState[i].owned = true;
+  levelState[i].rise = 0;
+  levelGroups[i].visible = true;
+  levelGroups[i].position.y = -(floorH(i) + 20);
+  showFeedback(`${L.name} unlocked!`, "#ffe14d");
+  updateHUD(); saveGame();
+  return true;
+}
+
+function buyUpgrade(key) {
+  const up = upgrades[key];
+  if (!spend(up.currentCost)) return false;
+  up.level += 1;
+  up.currentCost = Math.floor(up.baseCost * Math.pow(up.growth, up.level));
+  showFeedback("Upgrade purchased!", "#ffe14d");
+  updateHUD(); saveGame();
+  return true;
+}
+
+/* =========================================================
+   PETS and EGGS
+   ========================================================= */
+
+function equipPet(id) {
+  equippedPet = id || null;
+  rebuildLocalPet();
+  updatePlayerCard();
+  rebuildPetsPanel();
+  netUpdateProfile({ pet: equippedPet || "" });
+  saveGame();
+}
+
+function rollPet(egg) {
+  const total = egg.odds.reduce((a, b) => a + b, 0);
+  let r = Math.random() * total, tier = 0;
+  for (; tier < egg.odds.length; tier++) { r -= egg.odds[tier]; if (r <= 0) break; }
+  tier = Math.min(tier, RARITIES.length - 1);
+  let list = PET_IDS.filter((id) => PETS[id].rarity === tier);
+  if (!list.length) list = PET_IDS.filter((id) => PETS[id].rarity <= tier);
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+const hatch = { active: false, t: 0, station: null, petId: null };
+
+function buyEgg(st) {
+  if (hatch.active || !spend(st.egg.cost)) return false;
+  hatch.active = true; hatch.t = 0; hatch.station = st; hatch.petId = rollPet(st.egg);
+  updateHUD(); saveGame();
+  return true;
+}
+
+function givePet(id) {
+  petsOwned[id] = (petsOwned[id] || 0) + 1;
+  if (!equippedPet || PETS[id].rarity > PETS[equippedPet].rarity) equipPet(id);
+  else { rebuildPetsPanel(); saveGame(); }
+  showHatch(id);
+}
+
+function updateHatch(dt) {
+  if (!hatch.active) return;
+  hatch.t += dt;
+  const m = hatch.station.model;
+  const k = Math.min(1, hatch.t / 1.8);
+  m.rotation.z = Math.sin(hatch.t * 38) * (0.05 + 0.3 * k);
+  m.scale.setScalar(1 + k * 0.25);
+  if (hatch.t >= 1.8) {
+    m.rotation.z = 0;
+    m.scale.setScalar(1);
+    hatch.active = false;
+    givePet(hatch.petId);
+  }
+}
+
+/* =========================================================
+   OBBY LOGIC: only red barriers restart you. Falling does not.
+   ========================================================= */
+
+function courseAt(x, z, pad = 2) {
+  for (const c of courses) {
+    const r = c.rect;
+    if (x > r.x0 - pad && x < r.x1 + pad && z > r.z0 - pad && z < r.z1 + pad) return c;
+  }
+  return null;
+}
+
+function respawnCourse(course, msg) {
+  const p = course.points[course.cp];
+  hero.position.set(p.x, p.y, p.z);
+  heroBaseY = p.y; heroVy = 0; hv.x = 0; hv.z = 0; launchTimer = 0; grounded = true;
+  if (msg) showFeedback(msg, "#ffb3b3");
+}
+
+// optional: R key or the button takes you back to your last checkpoint
+function returnToCheckpoint() {
+  const c = courseAt(hero.position.x, hero.position.z, 8);
+  if (!c) { showFeedback("You are not in an obby course", "#ffd0d0"); return; }
+  respawnCourse(c, "Back at your checkpoint");
+}
+
+function courseReward(course) {
+  const R = course.def.reward;
+  const coins = Math.max(R.min, potentialIncome() * R.coins);
+  player.money += coins;
+  FRUIT_IDS.forEach((id) => { if (owned[id]) player.fruits[id] += R.fruit; });
+  obbyState.ready[course.c] = Date.now() + 10 * 60 * 1000;
+  course.cp = 0;
+  course.flags.forEach((f) => f.cloth.material.color.set(0xd94a3a));
+  showFeedback(`${course.def.name} complete! +${formatMoney(coins)} +${R.fruit} fruit`, "#ffd84d");
+  givePet(rollPet(EGGS[R.egg]));
+  updateHUD(); saveGame();
+}
+
+function updateObby(dt, t) {
+  if (hero.position.x < OBBY_X0 - 90) return;        // far from the obby park
+  courses.forEach((course) => {
+    course.plats.forEach((p) => {
+      if (!p.move) { p.s.dx = 0; p.s.dz = 0; return; }
+      const off = Math.sin(t * p.move.speed + p.move.phase) * p.move.amp;
+      const nx = p.x0, nz = p.z0 + off;
+      p.s.dx = nx - p.s.x; p.s.dz = nz - p.s.z;
+      p.s.x = nx; p.s.z = nz; p.col.x = nx; p.col.z = nz;
+      p.mesh.position.x = nx; p.mesh.position.z = nz;
+    });
+    course.bars.forEach((b) => {
+      const off = Math.sin(t * b.move.speed + b.move.phase) * b.move.amp;
+      b.x = b.x0 + off;
+      b.mesh.position.x = b.x;
+    });
+  });
+
+  const course = courseAt(hero.position.x, hero.position.z, 1);
+  if (!course) return;
+  const hx = hero.position.x, hz = hero.position.z, hy = hero.position.y, r = course.rect;
+
+  // red barriers: the fence around the course and the sweeping bars
+  const inside = hx > r.x0 && hx < r.x1 && hz > r.z0 && hz < r.z1;
+  if (inside) {
+    for (const b of course.barriers) {
+      if (hy < b.top && Math.abs(hx - b.x) < b.hw + 1.3 && Math.abs(hz - b.z) < b.hd + 1.3) { respawnCourse(course, "Red barrier! Back to your checkpoint"); return; }
+    }
+  }
+  for (const b of course.bars) {
+    if (Math.abs(hx - b.x) < b.hw + 0.8 && Math.abs(hz - b.z) < b.hd + 0.8 && hy < b.top - 0.1 && hy > b.bottom - 3) { respawnCourse(course, "Red barrier! Back to your checkpoint"); return; }
+  }
+
+  // checkpoints
+  course.flags.forEach((f) => {
+    if (Math.abs(hx - f.x) < 3.5 && Math.abs(hz - f.z) < 3.5 && Math.abs(hy - f.top) < 3 && f.index > course.cp) {
+      course.cp = f.index;
+      f.cloth.material.color.set(0x2fd36b);
+      showFeedback("Checkpoint!", "#7dff9b");
+    }
+  });
+
+  // jump pads
+  course.pads.forEach((p) => {
+    p.cooldown -= dt;
+    if (grounded && p.cooldown <= 0 && Math.abs(hx - p.x) < 1.9 && Math.abs(hz - p.z) < 1.9 && Math.abs(hy - p.top) < 0.8) {
+      heroVy = p.vy; hv.x = p.vx; hv.z = p.vz;
+      launchTimer = 1.5; grounded = false; p.cooldown = 0.6;
+      showFeedback("Boing!", "#7dff9b");
+    }
+  });
+
+  // the golden chest at the end: coins, fruit and a pet
+  const fin = course.finish;
+  if (Math.abs(hx - fin.x) < 5 && Math.abs(hz - fin.z) < 5 && Math.abs(hy - fin.top) < 3 && Date.now() >= obbyState.ready[course.c]) courseReward(course);
+}
+
+/* =========================================================
+   ELEVATOR requests
+   ========================================================= */
+
+function requestElevator(floor) {
+  if (!levelState[floor].owned || levelState[floor].rise < 1) return;
+  if (elevMoving() || elev.to === floor) return;
+  elev.from = elev.to;
+  elev.to = floor;
+  elev.start = serverNow();
+  netSetElevator();
+}
+
+/* =========================================================
+   STATE VISUALS, RESET, REBIRTH
+   ========================================================= */
+
+function applyStateVisuals() {
+  levelState.forEach((st, i) => {
+    levelGroups[i].visible = st.owned;
+    st.rise = st.owned ? 1 : 0;
+    levelGroups[i].position.y = st.owned ? 0 : -(floorH(i) + 20);
+  });
+  FRUIT_IDS.forEach((id) => {
+    const t = slots[id].tree;
+    const show = owned[id] && levelState[FRUITS[id].level].owned;
+    t.visible = show;
+    t.userData.grow = 1;
+    t.scale.setScalar(1);
+    slots[id].label.visible = show;
+  });
+}
+
+function resetProgress() {
+  player.money = 0;
+  FRUIT_IDS.forEach((id) => { player.fruits[id] = 0; owned[id] = FRUITS[id].cost === 0; treeState[id].lvl = 0; treeState[id].spd = 0; });
+  levelState.forEach((st, i) => { st.owned = i === 0; });
+  UPGRADE_KEYS.forEach((k) => { upgrades[k].level = 0; upgrades[k].currentCost = upgrades[k].baseCost; });
+  Object.values(bins).forEach((b) => {
+    b.balls.forEach((x) => dropMesh(x.mesh));
+    b.balls.length = 0;
+    b.stock = 0;
+  });
+  flying.forEach((f) => dropMesh(f.mesh));
+  flying.length = 0;
+  clearEffects();
+  juicer.queueFruits = 0; juicer.queueValue = 0; juicer.paid = 0; juicer.autoTimer = 0; juicer.busy = false;
+  collectAcc = 0;
+  applyStateVisuals();
+  // elevator goes back to the ground floor
+  elev.from = 0; elev.to = 0; elev.start = 0;
+  netSetElevator();
+  hero.position.set(0, 0, 165);
+  heroBaseY = 0; heroVy = 0; hv.x = 0; hv.z = 0; grounded = true;
+}
+
+function rebirth() {
+  const cost = rebirthCost();
+  if (player.money < cost) { showFeedback("Not enough coins to rebirth!", "#ffb3b3"); return; }
+  const next = Math.pow(2, player.rebirths + 1);
+  if (!window.confirm(`Rebirth for ${formatMoney(cost)}?\n\nYou lose your coins, fruit, trees, floors and upgrades (pets stay!), but you get a permanent x${next} money bonus.`)) return;
+  player.rebirths += 1;
+  resetProgress();
+  showFeedback(`Rebirth! Money is now x${rebirthMultiplier()}`, "#e0b3ff");
+  updateHUD(); saveGame();
+}
+
+/* =========================================================
+   SAVE / LOAD (localStorage)
+   ========================================================= */
+
+let saveNoteTimer = null;
+function saveGame() {
+  try {
+    const data = {
+      v: 1, t: Date.now(),
+      money: player.money, total: player.totalFruits, rebirths: player.rebirths,
+      fruits: player.fruits, owned, treeState,
+      levels: levelState.map((s) => s.owned),
+      upgrades: Object.fromEntries(UPGRADE_KEYS.map((k) => [k, upgrades[k].level])),
+      bins: Object.fromEntries(FRUIT_IDS.map((id) => [id, bins[id].stock + bins[id].balls.length])),
+      juicer: { n: juicer.queueFruits, v: juicer.queueValue },
+      pets: { owned: petsOwned, equipped: equippedPet },
+      profile: { name: profile.name, character: profile.character },
+      settings: { autoCollect: settings.autoCollect },
+      obbyReady: obbyState.ready
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+    if (el.save) {
+      el.save.textContent = "Saved!";
+      el.save.classList.add("saved");
+      clearTimeout(saveNoteTimer);
+      saveNoteTimer = setTimeout(() => { el.save.textContent = "Game saves automatically"; el.save.classList.remove("saved"); }, 1500);
+    }
+  } catch (e) { /* storage unavailable: ignore */ }
+}
+
+function loadGame() {
+  let d;
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return false;
+    d = JSON.parse(raw);
+  } catch (e) { return false; }
+  if (!d || d.v !== 1) return false;
+
+  const num = (v, fallback = 0) => (Number.isFinite(v) && v >= 0 ? v : fallback);
+  player.money = num(d.money);
+  player.totalFruits = num(d.total);
+  player.rebirths = Math.floor(num(d.rebirths));
+
+  (d.levels || []).forEach((v, i) => { if (levelState[i] && i > 0) levelState[i].owned = !!v; });
+  for (let i = 1; i < levelState.length; i++) if (!levelState[i - 1].owned) levelState[i].owned = false;
+
+  FRUIT_IDS.forEach((id) => {
+    player.fruits[id] = num(d.fruits && d.fruits[id]);
+    owned[id] = FRUITS[id].cost === 0 || (!!(d.owned && d.owned[id]) && levelState[FRUITS[id].level].owned);
+    const ts = d.treeState && d.treeState[id];
+    treeState[id].lvl = Math.floor(num(ts && ts.lvl));
+    treeState[id].spd = Math.floor(num(ts && ts.spd));
+  });
+  UPGRADE_KEYS.forEach((k) => {
+    const lvl = Math.floor(num(d.upgrades && d.upgrades[k]));
+    upgrades[k].level = lvl;
+    upgrades[k].currentCost = Math.floor(upgrades[k].baseCost * Math.pow(upgrades[k].growth, lvl));
+  });
+  if (d.juicer) { juicer.queueFruits = num(d.juicer.n); juicer.queueValue = num(d.juicer.v); }
+
+  if (d.pets) {
+    PET_IDS.forEach((id) => { const c = Math.floor(num(d.pets.owned && d.pets.owned[id])); if (c > 0) petsOwned[id] = c; });
+    equippedPet = d.pets.equipped && PETS[d.pets.equipped] && petsOwned[d.pets.equipped] ? d.pets.equipped : null;
+  }
+  if (d.profile) {
+    profile.name = String(d.profile.name || "").slice(0, 14);
+    if (CHAR_BY_ID[d.profile.character]) profile.character = d.profile.character;
+    profile.confirmed = !!profile.name;
+  }
+  settings.autoCollect = !!(d.settings && d.settings.autoCollect);
+  obbyState.ready = [0, 1, 2].map((k) => num(d.obbyReady && d.obbyReady[k]));
+
+  // Fruit that dropped while you were away (up to 2 hours) waits in the boxes
+  const secs = clamp((Date.now() - num(d.t, Date.now())) / 1000, 0, 7200);
+  let added = 0;
+  FRUIT_IDS.forEach((id) => {
+    const b = bins[id];
+    b.stock = Math.floor(num(d.bins && d.bins[id]));
+    if (owned[id] && levelState[FRUITS[id].level].owned) { const n = Math.floor(secs / dropInterval(id)); b.stock += n; added += n; }
+  });
+
+  applyStateVisuals();
+  if (added > 0) setTimeout(() => showFeedback(`Welcome back! +${formatNumber(added)} fruit in the boxes`, "#ffe14d"), 1500);
+  return true;
+}
+
+
+/* =========================================================
+   HUD
+   ========================================================= */
+
+const $ = (id) => document.getElementById(id);
+const el = {
+  money: $("money"), jps: $("jps"), total: $("total-fruits"), rebirths: $("rebirths"),
+  inventory: $("inventory"), upgradeList: $("upgrade-list"), feedback: $("feedback"),
+  rebirthBtn: $("rebirth-btn"), rebirthInfo: $("rebirth-info"), resetBtn: $("reset-btn"),
+  tip: $("tip"), save: $("save-note"), hatch: $("hatch"),
+  pcName: $("pc-name"), pcPet: $("pc-pet"), pcNet: $("pc-net"),
+  tgAuto: $("tg-auto"), tgFp: $("tg-fp"), btnPets: $("btn-pets"), btnChar: $("btn-char"),
+  petsPanel: $("pets-panel"), petsList: $("pets-list"), petsClose: $("pets-close"),
+  menu: $("menu"), nameInput: $("name-input"), charGrid: $("char-grid"), netStatus: $("net-status"), playBtn: $("play-btn"),
+  hostBtn: $("host-btn"), joinBtn: $("join-btn"), codeInput: $("code-input"), hostJoin: $("host-join"),
+  sessionInfo: $("session-info"), sessionCode: $("session-code"), copyBtn: $("copy-btn"), leaveBtn: $("leave-btn"),
+  rulesHelp: $("rules-help"), rulesText: $("rules-text"), copyRules: $("copy-rules"),
+  pcSession: $("pc-session"), cpBtn: $("cp-btn")
+};
+
+FRUIT_IDS.forEach((id) => {
+  const row = document.createElement("div");
+  row.className = "inv-item";
+  row.id = "inv-row-" + id;
+  row.innerHTML = `<span class="inv-dot" style="background:${FRUITS[id].color}"></span><span class="inv-count" id="inv-${id}">0</span>`;
+  el.inventory.appendChild(row);
+});
+
+UPGRADE_KEYS.forEach((key) => {
+  const row = document.createElement("div");
+  row.className = "up-row";
+  row.id = "up-" + key;
+  row.innerHTML = `<div class="up-head"><span>${upgrades[key].name}</span><span class="up-level"></span></div><div class="up-effect"></div>`;
+  el.upgradeList.appendChild(row);
+});
+
+el.rebirthBtn.addEventListener("click", rebirth);
+el.resetBtn.addEventListener("click", () => {
+  if (window.confirm("Delete your saved game and start over? This also removes your rebirths and pets.")) {
+    try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* ignore */ }
+    window.removeEventListener("beforeunload", saveGame);
+    window.location.reload();
+  }
+});
+
+function updateHUD() {
+  el.money.textContent = formatMoney(player.money);
+  el.jps.textContent = formatMoney(potentialIncome()) + "/s";
+  el.total.textContent = formatNumber(Math.floor(player.totalFruits));
+  el.rebirths.textContent = `${player.rebirths} (x${formatNumber(rebirthMultiplier())})`;
+  FRUIT_IDS.forEach((id) => {
+    $("inv-" + id).textContent = formatNumber(Math.floor(player.fruits[id]));
+    $("inv-row-" + id).style.display = owned[id] || player.fruits[id] > 0 ? "flex" : "none";
+  });
+  UPGRADE_KEYS.forEach((key) => {
+    const row = $("up-" + key);
+    const up = upgrades[key];
+    row.querySelector(".up-level").textContent = `Lv ${up.level} · ${formatMoney(up.currentCost)}`;
+    row.querySelector(".up-effect").textContent = up.effect(up.level);
+  });
+  const cost = rebirthCost();
+  el.rebirthBtn.textContent = `Rebirth: ${formatMoney(cost)}`;
+  el.rebirthBtn.disabled = player.money < cost;
+  el.rebirthInfo.textContent = `Resets progress for a permanent x${formatNumber(Math.pow(2, player.rebirths + 1))} money bonus`;
+}
+
+function showFeedbackAt(x, y, z, text, color = "#fff") {
+  const v = new THREE.Vector3(x, y, z).project(camera);
+  const node = document.createElement("div");
+  node.className = "float-text";
+  node.textContent = text;
+  node.style.left = ((v.x * 0.5 + 0.5) * window.innerWidth) + "px";
+  node.style.top = ((-v.y * 0.5 + 0.5) * window.innerHeight) + "px";
+  node.style.setProperty("--c", color);
+  node.style.setProperty("--dx", Math.round((Math.random() - 0.5) * 120) + "px");
+  el.feedback.appendChild(node);
+  node.addEventListener("animationend", () => node.remove());
+}
+const showFeedback = (text, color) => showFeedbackAt(hero.position.x, hero.position.y + 6.5, hero.position.z, text, color);
+
+function updatePlayerCard() {
+  el.pcName.textContent = profile.name || "Player";
+  if (equippedPet) {
+    const p = PETS[equippedPet];
+    el.pcPet.textContent = `${p.name} (${RARITIES[p.rarity].name})`;
+  } else el.pcPet.textContent = "none";
+}
+
+let hatchTimer = null;
+function showHatch(id) {
+  const p = PETS[id], r = RARITIES[p.rarity];
+  el.hatch.style.display = "block";
+  el.hatch.style.color = r.color;
+  el.hatch.innerHTML = "";
+  const line = document.createElement("div");
+  line.textContent = `You got a ${r.name} ${p.name}!`;
+  const small = document.createElement("small");
+  small.textContent = `+${Math.round(p.bonus.amount * 100)}% ${BONUS_TEXT[p.bonus.type]}`;
+  el.hatch.appendChild(line);
+  el.hatch.appendChild(small);
+  clearTimeout(hatchTimer);
+  hatchTimer = setTimeout(() => { el.hatch.style.display = "none"; }, 3200);
+}
+
+/* ---------- Pets panel ---------- */
+
+function rebuildPetsPanel() {
+  el.petsList.innerHTML = "";
+  const ids = PET_IDS.filter((id) => petsOwned[id] > 0).sort((a, b) => PETS[b].rarity - PETS[a].rarity);
+  if (!ids.length) {
+    const empty = document.createElement("div");
+    empty.className = "pet-empty";
+    empty.textContent = "No pets yet. Step on an egg pad near the Juicenator, or finish the obby!";
+    el.petsList.appendChild(empty);
+    return;
+  }
+  ids.forEach((id) => {
+    const p = PETS[id], r = RARITIES[p.rarity];
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "pet-card" + (id === equippedPet ? " equipped" : "");
+    b.style.setProperty("--rc", r.color);
+    const n = document.createElement("b"); n.textContent = `${p.name} x${petsOwned[id]}`;
+    const rr = document.createElement("span"); rr.className = "pet-rarity"; rr.textContent = r.name;
+    const bb = document.createElement("div"); bb.className = "pet-bonus"; bb.textContent = `+${Math.round(p.bonus.amount * 100)}% ${BONUS_TEXT[p.bonus.type]}`;
+    b.appendChild(n); b.appendChild(rr); b.appendChild(bb);
+    b.addEventListener("click", () => equipPet(id));
+    el.petsList.appendChild(b);
+  });
+}
+el.btnPets.addEventListener("click", () => { rebuildPetsPanel(); el.petsPanel.hidden = false; });
+el.petsClose.addEventListener("click", () => { el.petsPanel.hidden = true; });
+
+/* ---------- Name and character menu ---------- */
+
+let menuOpen = true;
+
+function drawCharThumb(canvas, def) {
+  const g = canvas.getContext("2d");
+  const hex = (n) => "#" + n.toString(16).padStart(6, "0");
+  g.clearRect(0, 0, 72, 96);
+  g.fillStyle = hex(def.pants);  g.fillRect(22, 62, 12, 22); g.fillRect(38, 62, 12, 22);
+  g.fillStyle = hex(def.shoes);  g.fillRect(20, 82, 15, 8);  g.fillRect(37, 82, 15, 8);
+  g.fillStyle = hex(def.shirt);  g.fillRect(18, 36, 36, 28);
+  if (def.jacket) { g.fillStyle = hex(def.jacket); g.fillRect(14, 36, 14, 28); g.fillRect(44, 36, 14, 28); }
+  g.fillStyle = hex(def.jacket || def.shirt); g.fillRect(6, 38, 11, 18); g.fillRect(55, 38, 11, 18);
+  g.fillStyle = hex(def.skin);   g.fillRect(6, 56, 11, 8);   g.fillRect(55, 56, 11, 8);
+  g.fillStyle = hex(def.skin);   g.beginPath(); g.arc(36, 24, 14, 0, Math.PI * 2); g.fill();
+  g.fillStyle = hex(def.hair.color);
+  switch (def.hair.style) {
+    case "spiky": g.fillRect(24, 6, 24, 8); [26, 34, 42].forEach((x) => g.fillRect(x, 0, 6, 10)); break;
+    case "long": g.fillRect(20, 6, 32, 8); g.fillRect(18, 10, 7, 30); g.fillRect(47, 10, 7, 30); break;
+    case "cap": g.fillRect(20, 6, 32, 9); g.fillRect(30, 14, 28, 4); break;
+    case "buns": g.fillRect(22, 8, 28, 7); g.beginPath(); g.arc(20, 8, 6, 0, 7); g.arc(52, 8, 6, 0, 7); g.fill(); break;
+    case "hood": g.fillRect(18, 6, 36, 10); g.fillRect(17, 10, 6, 24); g.fillRect(49, 10, 6, 24); break;
+    default: g.fillRect(21, 7, 30, 9); g.fillRect(23, 14, 12, 5); break;
+  }
+  g.fillStyle = "#15151a"; g.fillRect(29, 24, 3, 5); g.fillRect(41, 24, 3, 5);
+  g.fillRect(31, 32, 10, 2);
+}
+
+function buildCharGrid() {
+  CHARACTERS.forEach((def) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "char-card";
+    b.dataset.id = def.id;
+    const c = document.createElement("canvas");
+    c.width = 72; c.height = 96;
+    drawCharThumb(c, def);
+    const s = document.createElement("span");
+    s.textContent = def.name;
+    b.appendChild(c); b.appendChild(s);
+    b.addEventListener("click", () => selectChar(def.id));
+    el.charGrid.appendChild(b);
+  });
+}
+
+function selectChar(id) {
+  profile.character = id;
+  [...el.charGrid.children].forEach((b) => b.classList.toggle("selected", b.dataset.id === id));
+}
+
+function openMenu(inGame) {
+  menuOpen = true;
+  el.nameInput.value = profile.name || "";
+  selectChar(profile.character);
+  el.playBtn.textContent = inGame ? "Save and resume" : "Play solo";
+  el.codeInput.value = net.session || lastSessionCode();
+  el.menu.hidden = false;
+  updateNetUI();
+}
+function closeMenu() { menuOpen = false; el.menu.hidden = true; }
+
+function confirmProfile() {
+  const raw = (el.nameInput.value || "").replace(/[^\w \-.]/g, "").trim().slice(0, 14);
+  profile.name = raw || profile.name || "Player" + Math.floor(Math.random() * 900 + 100);
+  profile.confirmed = true;
+  setHeroCharacter(profile.character);
+  updatePlayerCard();
+  if (net.joined) netUpdateProfile({ name: profile.name, character: profile.character });
+  saveGame();
+}
+
+el.playBtn.addEventListener("click", () => { unlockAudio(); confirmProfile(); closeMenu(); });
+el.hostBtn.addEventListener("click", () => { unlockAudio(); confirmProfile(); hostSession(); });
+el.joinBtn.addEventListener("click", () => { unlockAudio(); confirmProfile(); joinSession(el.codeInput.value); });
+el.codeInput.addEventListener("input", () => { el.codeInput.value = cleanCode(el.codeInput.value); });
+el.leaveBtn.addEventListener("click", () => leaveSession());
+el.btnChar.addEventListener("click", () => openMenu(true));
+
+function copyText(text, button, label) {
+  const done = () => { if (button) { button.textContent = "Copied!"; setTimeout(() => { button.textContent = label; }, 1500); } };
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(text).then(done, done); return; }
+  } catch (e) { /* fall through */ }
+  done();
+}
+el.copyBtn.addEventListener("click", () => copyText(net.session || "", el.copyBtn, "Copy code"));
+el.copyRules.addEventListener("click", () => copyText(RULES_TEXT, el.copyRules, "Copy rules"));
+
+function setAutoCollect(v) {
+  settings.autoCollect = v;
+  el.tgAuto.textContent = "Auto Collect: " + (v ? "ON" : "OFF");
+  el.tgAuto.classList.toggle("on", v);
+  saveGame();
+}
+let fpPitch = 0;
+function setFirstPerson(v) {
+  settings.firstPerson = v;
+  el.tgFp.textContent = "First Person: " + (v ? "ON" : "OFF");
+  el.tgFp.classList.toggle("on", v);
+  if (heroAvatar) heroAvatar.visible = !v;
+  fpPitch = 0;
+}
+el.tgAuto.addEventListener("click", () => setAutoCollect(!settings.autoCollect));
+el.tgFp.addEventListener("click", () => setFirstPerson(!settings.firstPerson));
+
+/* =========================================================
+   MULTIPLAYER (Firebase Realtime Database) with SESSION CODES
+   sessions/{CODE}/meta            = { host, created }
+   sessions/{CODE}/players/{id}    = { name, character, pet, x, y, z, r }
+   sessions/{CODE}/elevator        = { from, to, start }
+   The host makes a code, friends type it in and join the same world.
+   ========================================================= */
+
+const RULES_TEXT = '{\n  "rules": {\n    "sessions": { ".read": true, ".write": true }\n  }\n}';
+const SESSION_KEY = "fjt_last_session";
+const net = { fb: null, db: null, ready: false, connected: false, error: "", msg: "", session: null, isHost: false, online: 0, joined: false, acc: 0, last: { x: 1e9, y: 1e9, z: 1e9, r: 1e9 }, ref: null, unsub: [] };
+const remotes = new Map();
+const myId = (() => {
+  let id = null;
+  try { id = localStorage.getItem("fjt_uid"); } catch (e) { /* ignore */ }
+  if (!id) {
+    id = "p" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+    try { localStorage.setItem("fjt_uid", id); } catch (e) { /* ignore */ }
+  }
+  return id;
+})();
+const r2 = (n) => Math.round(n * 100) / 100;
+const cleanCode = (v) => String(v || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
+const lastSessionCode = () => { try { return localStorage.getItem(SESSION_KEY) || ""; } catch (e) { return ""; } };
+const sessionPath = (sub) => `sessions/${net.session}/${sub}`;
+function genCode() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let c = "";
+  for (let i = 0; i < 6; i++) c += chars[Math.floor(Math.random() * chars.length)];
+  return c;
+}
+
+function setNetMsg(text, error = "") {
+  net.msg = text;
+  net.error = error;
+  updateNetUI();
+}
+
+function updateNetUI() {
+  let card, online = false;
+  if (net.error === "load") card = "Offline (solo)";
+  else if (net.error) card = "Connection problem";
+  else if (!net.ready) card = "Connecting...";
+  else if (!net.connected) card = "Connecting to server...";
+  else if (net.session && net.joined) { card = `Online · ${net.online} player${net.online === 1 ? "" : "s"}`; online = true; }
+  else { card = "Online (solo)"; online = true; }
+  el.pcNet.textContent = card;
+  el.pcNet.classList.toggle("online", online);
+  el.pcSession.textContent = net.session ? `Session: ${net.session}` : "Not in a session";
+
+  let line = net.msg;
+  if (!line) line = net.ready && net.connected ? "Connected. Host a session or enter a code." : "Connecting to the multiplayer server...";
+  el.netStatus.textContent = line;
+  el.netStatus.classList.toggle("online", online && !net.error);
+  el.sessionInfo.hidden = !net.session;
+  el.hostJoin.hidden = !!net.session;
+  el.sessionCode.textContent = net.session || "";
+  el.rulesHelp.hidden = net.error !== "rules";
+  el.rulesText.textContent = RULES_TEXT;
+}
+
+function loadFirebaseModules() {
+  if (window.__fbMock) return Promise.resolve(window.__fbMock);     // test hook
+  const base = `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/`;
+  return Promise.all([import(base + "firebase-app.js"), import(base + "firebase-database.js")])
+    .then(([a, d]) => Object.assign({}, a, d));
+}
+
+async function initFirebase() {
+  try {
+    const m = await loadFirebaseModules();
+    const app = m.initializeApp(firebaseConfig);
+    const db = m.getDatabase(app);
+    net.fb = m; net.db = db;
+    m.onValue(m.ref(db, ".info/connected"), (snap) => { net.connected = !!snap.val(); if (net.connected && net.error === "network") { net.error = ""; net.msg = ""; } updateNetUI(); });
+    m.onValue(m.ref(db, ".info/serverTimeOffset"), (snap) => { serverOffset = Number(snap.val()) || 0; });
+    net.ready = true;
+    updateNetUI();
+    // if the browser cannot reach Firebase at all, say so instead of waiting forever
+    setTimeout(() => { if (!net.connected && !net.error) setNetMsg("Can't reach the Firebase server. Check your internet connection or ad blocker.", "network"); }, 9000);
+  } catch (e) {
+    setNetMsg("Could not load Firebase (are you online?). You can still play solo.", "load");
+  }
+}
+
+// Turns a Firebase error into a message that says what to fix
+function failNet(e) {
+  const t = String((e && (e.code || e.message)) || e).toLowerCase();
+  if (t.includes("permission")) setNetMsg("Firebase blocked the request: your database rules do not allow reads and writes. Paste the rules below in Firebase Console > Realtime Database > Rules, then press Publish.", "rules");
+  else setNetMsg("Could not talk to Firebase: " + (e && e.message ? e.message : t), "network");
+}
+
+async function hostSession() {
+  if (!net.ready) { setNetMsg(net.error === "load" ? net.msg : "Still connecting to Firebase. Try again in a moment.", net.error); return; }
+  setNetMsg("Creating your session...");
+  const m = net.fb;
+  try {
+    for (let tries = 0; tries < 8; tries++) {
+      const code = genCode();
+      const snap = await m.get(m.ref(net.db, `sessions/${code}/meta`));
+      if (snap.val()) continue;                    // code already used
+      await m.set(m.ref(net.db, `sessions/${code}/meta`), { host: profile.name, created: m.serverTimestamp() });
+      startSession(code, true);
+      return;
+    }
+    setNetMsg("Could not find a free session code. Try again.");
+  } catch (e) { failNet(e); }
+}
+
+async function joinSession(raw) {
+  const code = cleanCode(raw);
+  if (code.length !== 6) { setNetMsg("Type the 6-character session code your host sent you."); return; }
+  if (!net.ready) { setNetMsg(net.error === "load" ? net.msg : "Still connecting to Firebase. Try again in a moment.", net.error); return; }
+  setNetMsg(`Looking for session ${code}...`);
+  const m = net.fb;
+  try {
+    const snap = await m.get(m.ref(net.db, `sessions/${code}/meta`));
+    if (!snap.val()) { setNetMsg(`No session "${code}" found. Check the code with your host.`); return; }
+    startSession(code, false);
+  } catch (e) { failNet(e); }
+}
+
+function startSession(code, host) {
+  leaveSession(true);
+  const m = net.fb, db = net.db;
+  net.session = code; net.isHost = host; net.error = "";
+  net.msg = host ? `Session ${code} is live. Send this code to your friends!` : `You joined session ${code}.`;
+  try { localStorage.setItem(SESSION_KEY, code); } catch (e) { /* ignore */ }
+  const denied = (e) => failNet(e);
+  net.unsub.push(m.onValue(m.ref(db, sessionPath("players")), onPlayersSnapshot, denied));
+  net.unsub.push(m.onValue(m.ref(db, sessionPath("elevator")), onElevatorSnapshot, denied));
+  netJoin();
+  updateNetUI();
+  if (host) { menuOpen = true; el.menu.hidden = false; }     // stay on the menu so the host can copy the code
+  else closeMenu();
+  showFeedback(host ? `Session ${code} created` : `Joined session ${code}`, "#7dff9b");
+}
+
+function leaveSession(quiet) {
+  const m = net.fb;
+  if (m && net.joined && net.ref) {
+    try { const p = m.remove(net.ref); if (p && p.catch) p.catch(() => {}); } catch (e) { /* ignore */ }
+    try { m.onDisconnect(net.ref).cancel(); } catch (e) { /* ignore */ }
+  }
+  net.unsub.forEach((f) => { try { f(); } catch (e) { /* ignore */ } });
+  net.unsub = [];
+  for (const id of [...remotes.keys()]) removeRemote(id);
+  net.session = null; net.joined = false; net.online = 0; net.ref = null;
+  if (!quiet) { net.msg = "You left the session. Playing solo."; updateNetUI(); }
+}
+
+function onElevatorSnapshot(snap) {
+  const v = snap.val();
+  if (!v || !Number.isFinite(+v.from) || !Number.isFinite(+v.to)) { elev.from = 0; elev.to = 0; elev.start = 0; return; }
+  elev.from = clamp(Math.floor(+v.from), 0, LEVELS.length - 1);
+  elev.to = clamp(Math.floor(+v.to), 0, LEVELS.length - 1);
+  elev.start = typeof v.start === "number" ? v.start : serverNow();
+}
+
+function netJoin() {
+  if (!net.ready || !net.session || net.joined) return;
+  const m = net.fb;
+  net.ref = m.ref(net.db, sessionPath("players/" + myId));
+  // on join: write username, character, pet and position
+  const p = m.set(net.ref, {
+    name: profile.name, character: profile.character, pet: equippedPet || "",
+    x: r2(hero.position.x), y: r2(hero.position.y), z: r2(hero.position.z), r: r2(heroFacing)
+  });
+  if (p && p.catch) p.catch((e) => failNet(e));
+  m.onDisconnect(net.ref).remove();           // remove the player entry on disconnect
+  net.joined = true;
+  updateNetUI();
+}
+
+// on movement: update only x, y, z and rotation
+function netSendMove(dt) {
+  if (!net.joined) return;
+  net.acc += dt;
+  if (net.acc < 0.1) return;
+  const x = r2(hero.position.x), y = r2(hero.position.y), z = r2(hero.position.z), r = r2(heroFacing);
+  const L = net.last;
+  if (Math.abs(x - L.x) < 0.03 && Math.abs(y - L.y) < 0.03 && Math.abs(z - L.z) < 0.03 && Math.abs(r - L.r) < 0.03) return;
+  net.acc = 0;
+  net.last = { x, y, z, r };
+  const p = net.fb.update(net.ref, { x, y, z, r });
+  if (p && p.catch) p.catch(() => {});
+}
+
+function netUpdateProfile(fields) {
+  if (!net.joined) return;
+  const p = net.fb.update(net.ref, fields);
+  if (p && p.catch) p.catch(() => {});
+}
+
+function netSetElevator() {
+  if (!net.ready || !net.session) return;
+  const p = net.fb.set(net.fb.ref(net.db, sessionPath("elevator")), { from: elev.from, to: elev.to, start: net.fb.serverTimestamp() });
+  if (p && p.catch) p.catch(() => {});
+}
+
+window.addEventListener("pagehide", () => { if (net.joined) net.fb.remove(net.ref); });
+
+/* ---------- Other players ---------- */
+
+function setRemotePet(r, petId) {
+  if (r.pet) scene.remove(r.pet);
+  r.pet = null;
+  r.petId = petId || "";
+  if (r.petId && PETS[r.petId]) {
+    r.pet = buildPet(r.petId);
+    r.pet.position.set(r.group.position.x + 2, r.group.position.y, r.group.position.z - 2);
+    scene.add(r.pet);
+  }
+}
+
+function createRemote(id, d) {
+  const def = CHAR_BY_ID[d.character] || CHARACTERS[0];
+  const built = buildAvatar(def);
+  const group = new THREE.Group();
+  group.add(built.group);
+  group.position.set(d.x, d.y, d.z);
+  group.rotation.y = d.r || 0;
+  const tag = makeLabel(5.6, 1.75);
+  tag.position.set(0, 7.8, 0);
+  const name = String(d.name || "Player").slice(0, 14);
+  setLabel(tag, [[name, "#ffffff", 72]]);
+  group.add(tag);
+  scene.add(group);
+  const r = { id, group, avatar: built.group, limbs: built.limbs, tag, name, character: d.character, pet: null, petId: "", target: { x: d.x, y: d.y, z: d.z, r: d.r || 0 }, phase: 0, speed: 0 };
+  setRemotePet(r, d.pet);
+  return r;
+}
+
+function removeRemote(id) {
+  const r = remotes.get(id);
+  if (!r) return;
+  scene.remove(r.group);
+  if (r.pet) scene.remove(r.pet);
+  remotes.delete(id);
+}
+
+function onPlayersSnapshot(snap) {
+  const val = snap.val() || {};
+  net.online = Object.keys(val).length;
+  Object.keys(val).forEach((id) => {
+    if (id === myId) return;
+    const d = val[id];
+    if (!d || !Number.isFinite(d.x) || !Number.isFinite(d.y) || !Number.isFinite(d.z)) return;
+    let r = remotes.get(id);
+    if (!r) {
+      if (remotes.size >= PERF.remotes) return;
+      r = createRemote(id, d);
+      remotes.set(id, r);
+    } else {
+      if (d.character !== r.character && CHAR_BY_ID[d.character]) {
+        r.group.remove(r.avatar);
+        const built = buildAvatar(CHAR_BY_ID[d.character]);
+        r.avatar = built.group; r.limbs = built.limbs; r.character = d.character;
+        r.group.add(r.avatar);
+      }
+      const name = String(d.name || "Player").slice(0, 14);
+      if (name !== r.name) { r.name = name; setLabel(r.tag, [[name, "#ffffff", 72]]); }
+      if ((d.pet || "") !== r.petId) setRemotePet(r, d.pet);
+    }
+    r.target.x = d.x; r.target.y = d.y; r.target.z = d.z; r.target.r = Number.isFinite(d.r) ? d.r : 0;
+  });
+  for (const id of [...remotes.keys()]) if (!(id in val)) removeRemote(id);
+  updateNetUI();
+}
+
+// Smooth interpolation so other players never jitter
+function updateRemotes(dt, t) {
+  const k = 1 - Math.exp(-10 * dt);
+  remotes.forEach((r) => {
+    const g = r.group.position;
+    const px = g.x, pz = g.z;
+    g.x += (r.target.x - g.x) * k;
+    g.y += (r.target.y - g.y) * k;
+    g.z += (r.target.z - g.z) * k;
+    r.group.rotation.y = angleLerp(r.group.rotation.y, r.target.r, k);
+    const sp = Math.hypot(g.x - px, g.z - pz) / Math.max(dt, 0.001);
+    r.speed += (sp - r.speed) * Math.min(1, dt * 8);
+    const amp = Math.min(1, r.speed / 8) * 0.9;
+    r.phase += dt * 10 * Math.min(1.4, r.speed / 10);
+    const sw = Math.sin(r.phase) * amp;
+    r.limbs.armL.rotation.x = sw; r.limbs.armR.rotation.x = -sw;
+    r.limbs.legL.rotation.x = -sw; r.limbs.legR.rotation.x = sw;
+    if (r.pet) followPet(r.pet, g, r.group.rotation.y, dt, t);
+  });
+}
+
+/* =========================================================
+   INPUT AND CAMERA
+   ========================================================= */
+
+const keys = {};
+const joy = { x: 0, y: 0, id: null };
+let runToggle = false, jumpTouch = false;
+let camYaw = 0, camPitch = 0.5, camDist = 22;
+let lastInteract = 0;
+const camFocus = new THREE.Vector3(0, 3.5, 165);
+
+const clearKeys = () => { for (const k in keys) keys[k] = false; };
+
+window.addEventListener("keydown", (e) => {
+  if (e.target && e.target.tagName === "INPUT") return;
+  if (menuOpen) return;
+  keys[e.code] = true;
+  unlockAudio();
+  if (e.repeat) { if (e.code.startsWith("Arrow") || e.code === "Space") e.preventDefault(); return; }
+  if (e.code === "KeyE") tryInteractNearest();
+  if (e.code === "Digit1") setEquipped(!collector.equipped);
+  if (e.code === "KeyC") setAutoCollect(!settings.autoCollect);
+  if (e.code === "KeyV") setFirstPerson(!settings.firstPerson);
+  if (e.code === "KeyP") { rebuildPetsPanel(); el.petsPanel.hidden = !el.petsPanel.hidden; }
+  if (e.code === "KeyM") soundOn = !soundOn;
+  if (e.code === "KeyR") returnToCheckpoint();
+  if (e.code.startsWith("Arrow") || e.code === "Space") e.preventDefault();
+});
+window.addEventListener("keyup", (e) => { keys[e.code] = false; });
+
+// Fix for "keeps walking": when the right-click menu opens or the window loses
+// focus, the browser never sends the key-up. Block the menu and clear the keys.
+window.addEventListener("blur", clearKeys);
+document.addEventListener("visibilitychange", clearKeys);
+window.addEventListener("contextmenu", (e) => { if (!e.target || e.target.tagName !== "INPUT") e.preventDefault(); });
+
+const canvas = renderer.domElement;
+canvas.addEventListener("wheel", (e) => {
+  camDist = clamp(camDist + e.deltaY * 0.02, 10, 40);
+  e.preventDefault();
+}, { passive: false });
+
+slotEl.addEventListener("click", () => { unlockAudio(); setEquipped(!collector.equipped); });
+
+/* Pointer handling:
+   mouse - the ball follows the mouse. Hold the left button (or click once to latch it on)
+           to collect. Right-drag looks around. Left-drag also looks when the ball is put away (key 1).
+   touch - one finger drags the ball over fruit. Two fingers look and pinch-zoom. */
+const ptrs = new Map();
+let gesture = null;
+
+function lookBy(dx, dy) {
+  camYaw -= dx * 0.006;
+  if (settings.firstPerson) fpPitch = clamp(fpPitch + dy * 0.004, -1.3, 1.3);
+  else camPitch = clamp(camPitch + dy * 0.004, 0.12, 1.25);
+}
+
+function gestureState() {
+  const pts = [...ptrs.values()].slice(0, 2);
+  if (pts.length < 2) return null;
+  return { mx: (pts[0].x + pts[1].x) / 2, my: (pts[0].y + pts[1].y) / 2, dist: Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) };
+}
+
+canvas.addEventListener("pointerdown", (e) => {
+  try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+  unlockAudio();
+  const p = { x: e.clientX, y: e.clientY, moved: 0, type: e.pointerType, t: performance.now(), role: null };
+  ptrs.set(e.pointerId, p);
+  if (e.pointerType === "touch") {
+    if (ptrs.size >= 2) {
+      ptrs.forEach((q) => { q.role = "gesture"; });
+      gesture = gestureState();
+      collector.held = false;
+    } else if (collector.equipped) { p.role = "collect"; collector.held = true; collector.x = e.clientX; collector.y = e.clientY; }
+    else p.role = "look";
+  } else {
+    collector.x = e.clientX; collector.y = e.clientY; collector.inside = true;
+    if (e.button !== 0 || !collector.equipped) p.role = "look";
+    else { p.role = "collect"; collector.held = true; }
+  }
+  updateCollectorUI();
+});
+
+canvas.addEventListener("pointermove", (e) => {
+  if (e.pointerType !== "touch") { collector.x = e.clientX; collector.y = e.clientY; collector.inside = true; updateCollectorUI(); }
+  const p = ptrs.get(e.pointerId);
+  if (!p) return;
+  const dx = e.clientX - p.x, dy = e.clientY - p.y;
+  p.moved += Math.abs(dx) + Math.abs(dy);
+  p.x = e.clientX; p.y = e.clientY;
+  if (p.role === "look") lookBy(dx, dy);
+  else if (p.role === "collect" && p.type === "touch") { collector.x = e.clientX; collector.y = e.clientY; updateCollectorUI(); }
+  else if (p.role === "gesture" && gesture) {
+    const g = gestureState();
+    if (g) {
+      lookBy(g.mx - gesture.mx, g.my - gesture.my);
+      camDist = clamp(camDist - (g.dist - gesture.dist) * 0.05, 10, 40);
+      gesture = g;
+    }
+  }
+});
+
+const endPointer = (e) => {
+  const p = ptrs.get(e.pointerId);
+  if (!p) return;
+  ptrs.delete(e.pointerId);
+  if (p.role === "collect") {
+    collector.held = false;
+    // a quick click: use the Juicenator if you clicked it, otherwise latch the ball on / off
+    if (e.type === "pointerup" && p.moved < 8 && performance.now() - p.t < 350) {
+      if (!clickAt(e.clientX, e.clientY) && p.type !== "touch") collector.latched = !collector.latched;
+    }
+  }
+  if (p.role === "gesture") { gesture = null; ptrs.forEach((q) => { q.role = null; }); }
+  updateCollectorUI();
+};
+canvas.addEventListener("pointerup", endPointer);
+canvas.addEventListener("pointercancel", endPointer);
+canvas.addEventListener("lostpointercapture", (e) => { if (ptrs.has(e.pointerId)) endPointer({ pointerId: e.pointerId, type: "lost" }); });
+canvas.addEventListener("pointerleave", (e) => {
+  if (e.pointerType !== "touch") { collector.inside = false; updateCollectorUI(); }
+});
+
+window.addEventListener("resize", () => {
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+});
+
+/* Touch controls: joystick, Jump, Use and Run buttons */
+const joyEl = $("joystick"), stickEl = $("stick");
+function moveJoy(e) {
+  const r = joyEl.getBoundingClientRect();
+  const max = r.width / 2 - 14;
+  let dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+  const d = Math.hypot(dx, dy);
+  if (d > max) { dx *= max / d; dy *= max / d; }
+  stickEl.style.transform = `translate(${dx}px, ${dy}px)`;
+  joy.x = dx / max; joy.y = -dy / max;
+}
+function endJoy(e) {
+  if (e.pointerId !== joy.id) return;
+  joy.id = null; joy.x = 0; joy.y = 0;
+  stickEl.style.transform = "translate(0px, 0px)";
+}
+joyEl.addEventListener("pointerdown", (e) => {
+  joy.id = e.pointerId;
+  try { joyEl.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+  unlockAudio();
+  moveJoy(e);
+});
+joyEl.addEventListener("pointermove", (e) => { if (e.pointerId === joy.id) moveJoy(e); });
+["pointerup", "pointercancel", "lostpointercapture"].forEach((t) => joyEl.addEventListener(t, endJoy));
+
+$("btn-action").addEventListener("click", () => { unlockAudio(); tryInteractNearest(); });
+el.cpBtn.addEventListener("click", () => returnToCheckpoint());
+const jumpBtn = $("btn-jump");
+jumpBtn.addEventListener("pointerdown", () => { jumpTouch = true; });
+["pointerup", "pointercancel", "pointerleave"].forEach((t) => jumpBtn.addEventListener(t, () => { jumpTouch = false; }));
+const runBtn = $("btn-run");
+runBtn.addEventListener("click", () => { runToggle = !runToggle; runBtn.classList.toggle("on", runToggle); });
+
+/* Using the Juicenator */
+const raycaster = new THREE.Raycaster();
+function clickAt(px, py) {
+  const ndc = new THREE.Vector2((px / window.innerWidth) * 2 - 1, -(py / window.innerHeight) * 2 + 1);
+  raycaster.setFromCamera(ndc, camera);
+  if (raycaster.intersectObject(machine, true).length) { interact(false); return true; }
+  return false;
+}
+
+const MACHINE_RANGE = 12;
+const distToMachine = () => Math.hypot(machine.position.x - hero.position.x, machine.position.z - hero.position.z);
+
+function tryInteractNearest() {
+  if (distToMachine() < MACHINE_RANGE && Math.abs(hero.position.y) < 4) interact(false);
+  else showFeedback("Walk to the Juicenator!", "#ffd0d0");
+}
+
+function interact() {
+  const now = performance.now();
+  if (now - lastInteract < 150) return;
+  lastInteract = now;
+  if (distToMachine() > MACHINE_RANGE) { showFeedback("Walk closer!", "#ffd0d0"); return; }
+  dropAllFruit(false);
+}
+
+/* =========================================================
+   PASSIVE LOOP (setInterval, every 100 ms)
+   ========================================================= */
+
+const TICK_MS = 100;
+let collectAcc = 0, lastTick = performance.now();
+
+setInterval(() => {
+  const now = performance.now();
+  const dt = Math.min((now - lastTick) / 1000, 5);
+  lastTick = now;
+
+  // Every owned tree drops a fruit on its own timer (slow at the start)
+  FRUIT_IDS.forEach((id) => {
+    if (!owned[id] || !levelState[FRUITS[id].level].owned) return;
+    const s = slots[id], iv = dropInterval(id);
+    s.timer += dt;
+    let spawned = 0;
+    while (s.timer >= iv) {
+      s.timer -= iv;
+      if (!document.hidden && nearFloor(s.level) && flying.length < PERF.flying && spawned < 2) { spawnFruit(s); spawned++; }
+      else bins[id].stock += 1;             // far away: no animation, waits in the box's stock
+    }
+  });
+
+  // Auto collect toggle (slower than collecting by hand)
+  if (settings.autoCollect) {
+    collectAcc += autoCollectRate() * dt;
+    if (collectAcc >= 1) { const n = Math.floor(collectAcc); collectAcc -= n; autoCollect(n); }
+  }
+
+  // Auto Juicer upgrade
+  if (upgrades.autoJuicer.level > 0) {
+    juicer.autoTimer += dt;
+    if (juicer.autoTimer >= autoJuiceInterval()) {
+      juicer.autoTimer = 0;
+      if (totalInInventory() >= 1) dropAllFruit(true);
+    }
+  }
+
+  processJuicer(dt);
+  flushJuicerPopups(dt);
+  updateHUD();
+}, TICK_MS);
+
+setInterval(saveGame, 5000);
+window.addEventListener("beforeunload", saveGame);
+
+/* =========================================================
+   MAIN RENDER LOOP
+   ========================================================= */
+
+const clock = new THREE.Clock();
+
+function pushOut(pos, c, pr) {
+  const dx = pos.x - c.x, dz = pos.z - c.z;
+  if (c.theta) {
+    const lx = dx * c.c - dz * c.s, lz = dx * c.s + dz * c.c;
+    const ox = c.hw + pr - Math.abs(lx), oz = c.hd + pr - Math.abs(lz);
+    if (ox > 0 && oz > 0) {
+      let px = 0, pz = 0;
+      if (ox < oz) px = Math.sign(lx || 1) * ox; else pz = Math.sign(lz || 1) * oz;
+      pos.x += px * c.c + pz * c.s;
+      pos.z += -px * c.s + pz * c.c;
+    }
+    return;
+  }
+  const ox = c.hw + pr - Math.abs(dx), oz = c.hd + pr - Math.abs(dz);
+  if (ox > 0 && oz > 0) {
+    if (ox < oz) pos.x += Math.sign(dx || 1) * ox;
+    else pos.z += Math.sign(dz || 1) * oz;
+  }
+}
+
+function resolveCollisions(pos) {
+  for (const c of colliders) {
+    if (c.lv >= 0 && !(levelState[c.lv].owned && levelState[c.lv].rise >= 1)) continue;
+    if (Math.abs(pos.y - c.h) > 8) continue;
+    pushOut(pos, c, 0.9);
+  }
+  if (pos.x > OBBY_X0 - 20) {
+    for (const c of obbyBoxes) {
+      if (!(pos.y < c.top - 0.5 && pos.y + 4.5 > c.bottom)) continue;
+      pushOut(pos, c, 0.9);
+    }
+  }
+}
+
+// The trunk wall has five doorways (usable only while the elevator is level with your floor).
+// The glass railing around each ring is closed except at the bridges (and the ground-floor entrance).
+function applyRadialRules(ox, oz, ey) {
+  const p = hero.position;
+  const r = Math.hypot(p.x, p.z), or = Math.hypot(ox, oz);
+  if (r === or) return;
+  const ang = Math.atan2(p.x, p.z);
+  if ((r < R_WALL) !== (or < R_WALL)) {
+    const ok = elevAtAnyFloor() && Math.abs(p.y - ey) < 3 && doorDist(ang) < 0.26;
+    if (!ok) { p.x = ox; p.z = oz; hv.x = 0; hv.z = 0; return; }
+  }
+  if ((r < R_RAIL) !== (or < R_RAIL)) {
+    for (let i = 0; i < LEVELS.length; i++) {
+      if (!levelState[i].owned || levelState[i].rise < 1) continue;
+      if (Math.abs(p.y - floorH(i)) < 6 && !gapOpen(i, ang)) { p.x = ox; p.z = oz; hv.x = 0; hv.z = 0; return; }
+    }
+  }
+}
+
+const standingOn = (px, pz, wy, half) => Math.abs(hero.position.x - px) < half && Math.abs(hero.position.z - pz) < half && Math.abs(hero.position.y - wy) < 2.5;
+const WORLD = { xMin: -300, xMax: 440, zMin: -280, zMax: 250 };
+
+// glow when affordable: green plate that gently pulses
+function glowPad(p, affordable, t, normal, afford) {
+  p.plate.material.color.set(affordable ? afford : normal);
+  const s = affordable ? 1 + 0.07 * (Math.sin(t * 5) * 0.5 + 0.5) : 1;
+  p.plate.scale.set(s, 1, s);
+}
+
+function padTrigger(p, wy, half, dt, repeat, action, can, afford) {
+  p.cooldown -= dt;
+  p.warn -= dt;
+  if (!standingOn(p.wx, p.wz, wy, half)) return;
+  if (!can) return;
+  if (p.cooldown > 0) return;
+  if (afford) { if (action()) p.cooldown = repeat; }
+  else if (p.warn <= 0) { showFeedback("Not enough coins!", "#ffb3b3"); p.warn = 1.5; }
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  const t = clock.elapsedTime;
+  const live = !menuOpen;
+
+  // world objects that move
+  updateObby(dt, t);
+  const ey = elevY();
+  // if you are standing on the elevator, it carries you (even after a laggy frame)
+  if (grounded && heroStand === elevSurface) heroBaseY += ey - elevSurface.top;
+  elevator.position.y = ey;
+  elevSurface.top = ey;
+
+  if (live && keys.ArrowLeft) camYaw += 2 * dt;
+  if (live && keys.ArrowRight) camYaw -= 2 * dt;
+
+  // ----- movement: smooth acceleration and deceleration -----
+  let ix = live ? (keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0) + joy.x : 0;
+  let iz = live ? (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0) + joy.y : 0;
+  const im = Math.hypot(ix, iz);
+  if (im > 1) { ix /= im; iz /= im; }
+  const fwd = { x: -Math.sin(camYaw), z: -Math.cos(camYaw) };
+  const right = { x: Math.cos(camYaw), z: -Math.sin(camYaw) };
+  const mx = right.x * ix + fwd.x * iz;
+  const mz = right.z * ix + fwd.z * iz;
+  const len = Math.hypot(mx, mz);
+  const moving = len > 0.12;
+  const running = keys.ShiftLeft || keys.ShiftRight || runToggle;
+  const speed = (running ? 22 : 14) * (1 + petBonus("speed"));
+
+  let tvx = 0, tvz = 0;
+  if (moving) { const f = Math.min(1, len); tvx = (mx / len) * speed * f; tvz = (mz / len) * speed * f; }
+  if (launchTimer > 0) launchTimer -= dt;                     // jump pads keep your launch speed
+  else {
+    const dvx = tvx - hv.x, dvz = tvz - hv.z, dl = Math.hypot(dvx, dvz);
+    const maxd = (moving ? (grounded ? 60 : 16) : (grounded ? 50 : 6)) * dt;
+    if (dl > maxd) { hv.x += (dvx / dl) * maxd; hv.z += (dvz / dl) * maxd; } else { hv.x = tvx; hv.z = tvz; }
+  }
+
+  // ride moving platforms
+  if (grounded && heroStand && (heroStand.dx || heroStand.dz)) { hero.position.x += heroStand.dx; hero.position.z += heroStand.dz; }
+
+  const ox = hero.position.x, oz = hero.position.z;
+  hero.position.x = clamp(ox + hv.x * dt, WORLD.xMin, WORLD.xMax);
+  hero.position.z = clamp(oz + hv.z * dt, WORLD.zMin, WORLD.zMax);
+  resolveCollisions(hero.position);
+  applyRadialRules(ox, oz, ey);
+
+  // ----- vertical: jump, gravity, step up, ride the elevator -----
+  const wantJump = live && (keys.Space || jumpTouch);
+  if (wantJump && grounded) { heroVy = JUMP_V; grounded = false; }
+  let sup = supportY(hero.position.x, hero.position.z, heroBaseY);
+  if (grounded) {
+    if (sup >= heroBaseY - 0.0001 || heroBaseY - sup < 0.9) heroBaseY = sup;     // step up / ride / small step down
+    else { grounded = false; heroVy = 0; }
+  }
+  if (!grounded) {
+    heroVy -= HERO_G * dt;
+    heroBaseY += heroVy * dt;
+    sup = supportY(hero.position.x, hero.position.z, heroBaseY);
+    if (heroVy <= 0 && heroBaseY <= sup) { heroBaseY = sup; heroVy = 0; grounded = true; }
+  }
+  heroStand = lastSupport;
+  hero.position.y = heroBaseY + (moving && grounded ? Math.abs(Math.sin(walkPhase)) * 0.15 : 0);
+
+  // facing and walk cycle
+  const hsp = Math.hypot(hv.x, hv.z);
+  if (settings.firstPerson) heroFacing = angleLerp(heroFacing, Math.atan2(fwd.x, fwd.z), Math.min(1, dt * 10));
+  else if (hsp > 1) heroFacing = angleLerp(heroFacing, Math.atan2(hv.x, hv.z), Math.min(1, dt * 12));
+  hero.rotation.y = heroFacing;
+  walkPhase += dt * (hsp / 14) * 12;
+  const swing = grounded ? Math.sin(walkPhase) * 0.9 * Math.min(1, hsp / 8) : 0.6;
+  if (heroLimbs) {
+    const idle = hsp < 0.5 ? Math.sin(t * 1.6) * 0.04 : 0;
+    heroLimbs.armL.rotation.x = swing + idle;
+    heroLimbs.armR.rotation.x = -swing - idle;
+    heroLimbs.legL.rotation.x = grounded ? -swing : -0.4;
+    heroLimbs.legR.rotation.x = grounded ? swing : 0.4;
+  }
+  if (localPet) followPet(localPet, hero.position, heroFacing, dt, t);
+
+  // ----- camera: smooth third-person follow, or first person -----
+  const k = 1 - Math.exp(-12 * dt), ky = 1 - Math.exp(-9 * dt);
+  camFocus.x += (hero.position.x - camFocus.x) * k;
+  camFocus.z += (hero.position.z - camFocus.z) * k;
+  camFocus.y += (heroBaseY + 3.5 - camFocus.y) * ky;
+  if (settings.firstPerson) {
+    const hx = hero.position.x, hy = hero.position.y + 5.1, hz = hero.position.z;
+    camera.position.set(hx, hy, hz);
+    const cp = Math.cos(fpPitch);
+    camera.lookAt(hx + fwd.x * cp, hy - Math.sin(fpPitch), hz + fwd.z * cp);
+  } else {
+    let dist = camDist;
+    // keep the camera under the floor above when you are inside the tree
+    const hr = Math.hypot(hero.position.x, hero.position.z);
+    if (hr < 58 && hr > 14.5 && Math.sin(camPitch) > 0.05) {
+      let ceil = Infinity;
+      levelState.forEach((st, i) => { const b = floorH(i) - 1.3; if (st.owned && st.rise >= 1 && b > hero.position.y + 4) ceil = Math.min(ceil, b); });
+      if (ceil < Infinity) dist = Math.max(6, Math.min(dist, (ceil - 0.8 - camFocus.y) / Math.sin(camPitch)));
+    }
+    camera.position.set(
+      camFocus.x + Math.sin(camYaw) * Math.cos(camPitch) * dist,
+      camFocus.y + Math.sin(camPitch) * dist,
+      camFocus.z + Math.cos(camYaw) * Math.cos(camPitch) * dist
+    );
+    camera.lookAt(camFocus.x, camFocus.y, camFocus.z);
+  }
+  sun.position.set(camFocus.x + 30, heroBaseY + 50, camFocus.z + 20);
+  sun.target.position.set(camFocus.x, heroBaseY, camFocus.z);
+
+  // ----- fruit, collector, effects -----
+  updateFruits(dt);
+  FRUIT_IDS.forEach((id) => { const b = bins[id]; if (nearFloor(b.mod.level)) stepBin(b, dt); });
+  if (live) collectUnderPointer();
+  updateEffects(dt);
+  updateHatch(dt);
+
+  // floors rising out of the ground when bought
+  levelState.forEach((st, i) => {
+    if (i === 0 || !st.owned || st.rise >= 1) return;
+    st.rise = Math.min(1, st.rise + dt * 0.7);
+    levelGroups[i].position.y = -(floorH(i) + 20) * Math.pow(1 - st.rise, 3);
+  });
+
+  // trees growing in, filter flashes, name labels
+  FRUIT_IDS.forEach((id) => {
+    const s = slots[id], lv = levelState[s.level];
+    if (!lv.owned || lv.rise < 1) return;
+    if (s.tree.userData.grow < 1) {
+      s.tree.userData.grow = Math.min(1, s.tree.userData.grow + dt * 1.4);
+      const g = s.tree.userData.grow;
+      s.tree.scale.setScalar(Math.max(0.01, 1 + 2.7 * Math.pow(g - 1, 3) + 1.7 * Math.pow(g - 1, 2)));
+    }
+    if (s.flash > 0) { s.flash -= dt; s.filterBar.scale.setScalar(1 + Math.max(0, s.flash) * 0.6); }
+    s.label.visible = !!owned[id];
+    if (owned[id]) setLabel(s.label, [[FRUITS[id].treeName + (treeState[id].lvl ? ` Lv${treeState[id].lvl}` : ""), "#ffffff", 48], [`${formatMoney(fruitWorth(id))} each`, "#ffd9a8", 34]]);
+  });
+
+  // ----- Juicenator: shake, gears, juice level, stats above it -----
+  const mu = machine.userData;
+  if (mu.shake > 0) mu.shake -= dt;
+  machine.rotation.z = (mu.shake > 0 || juicer.busy) ? Math.sin(t * 50) * 0.012 * (mu.shake > 0 ? 3 : 1) : 0;
+  mu.gears.forEach((g) => { g.gear.rotation.z += dt * g.dir * (juicer.busy ? 6 + upgrades.juiceSpeed.level : 0.5); });
+  if (juicer.splash > 0) juicer.splash = Math.max(0, juicer.splash - dt * 3);
+  const fillTarget = 0.25 + 0.75 * Math.min(1, juicer.queueFruits / 150);
+  juicer.fill += (fillTarget - juicer.fill) * Math.min(1, dt * 3);
+  mu.juice.scale.y = Math.max(0.05, juicer.fill * 3.8 + juicer.splash * 0.25);
+  mu.juice.position.y = 3.2 + mu.juice.scale.y / 2;
+  setLabel(machineLabel, [
+    ["Juicenator", "#ffffff", 48],
+    [`Juice per second: ${formatMoney(potentialIncome())}`, "#7dff9b", 30],
+    [`Fruit value: x${formatNumber(moneyMultiplier())}`, "#ffd9a8", 30],
+    [juicer.busy ? `Juicing ${formatNumber(Math.ceil(juicer.queueFruits))} fruit...` : (isTouch ? "Tap Use to drop all your fruit in" : "Press E to drop all your fruit in"), "#b8d4ff", 26]
+  ]);
+
+  // fruit box labels (one box per tree)
+  FRUIT_IDS.forEach((id) => {
+    const b = bins[id], lv = levelState[b.mod.level];
+    if (!lv.owned || lv.rise < 1 || !nearFloor(b.mod.level)) return;
+    b.label.visible = !!owned[id];
+    if (!owned[id]) return;
+    const n = b.balls.length + b.stock;
+    setLabel(b.label, [[`${FRUITS[id].name} Box`, "#ffffff", 50], [`${formatNumber(n)} fruit`, n > 0 ? "#7dff9b" : "#b8d4ff", 42]]);
+  });
+
+  // tip while standing next to a box with fruit in it
+  let nearFruit = false;
+  FRUIT_IDS.forEach((id) => { if (bins[id].balls.length > 0 && canReachBin(bins[id])) nearFruit = true; });
+  let tip = "";
+  if (live && nearFruit && performance.now() - lastCollectTime > 5000) {
+    if (!collector.equipped) tip = "Press 1 to take out your collector ball";
+    else if (!collectorActive()) tip = isTouch ? "Touch and drag over fruit to collect it!" : "Hold the mouse button (or click once) and hover over fruit!";
+  }
+  el.tip.style.display = tip ? "block" : "none";
+  if (tip) el.tip.textContent = tip;
+
+  // ----- pads -----
+  const G = 0x2fd36b;
+  upgradePads.forEach((p) => {
+    const up = upgrades[p.key], afford = player.money >= up.currentCost;
+    setLabel(p.label, [[up.name, "#ffffff", 40], [formatMoney(up.currentCost), afford ? "#7dff9b" : "#ffb3b3", 60], ["Level " + up.level, "#b8d4ff", 34]]);
+    glowPad(p, afford, t, 0x2d7cf6, G);
+    padTrigger(p, 0, 2.4, dt, 0.6, () => buyUpgrade(p.key), true, afford);
+  });
+
+  treePads.forEach((p) => {
+    const lv = levelState[p.level], f = FRUITS[p.id];
+    const show = lv.owned && lv.rise >= 1;
+    p.group.visible = show;
+    if (!show) return;
+    const own = owned[p.id];
+    let lines, afford = false, can = true, repeat = 0.6, action;
+    if (p.kind === "tree") {
+      afford = player.money >= f.cost;
+      can = !own;
+      action = () => buyTree(p.id);
+      lines = own
+        ? [[f.treeName, "#fff", 42], ["OWNED", "#7dff9b", 54], [`Worth ${formatMoney(fruitWorth(p.id))} each`, "#ffd9a8", 28]]
+        : [[f.treeName, "#fff", 42], [formatMoney(f.cost), afford ? "#7dff9b" : "#ffb3b3", 56], [`Buy tree · worth ${formatMoney(fruitWorth(p.id))}`, "#ffd9a8", 28]];
+      glowPad(p, afford && !own, t, own ? 0x1d8a4a : 0xd94a3a, 0x7bd62a);
+    } else if (p.kind === "level") {
+      const cost = treeLevelCost(p.id);
+      afford = player.money >= cost; can = own; action = () => buyTreeLevel(p.id);
+      lines = own
+        ? [[`${f.name} Level ${treeState[p.id].lvl}`, "#fff", 40], [formatMoney(cost), afford ? "#7dff9b" : "#ffb3b3", 56], ["+40% fruit value", "#ffd9a8", 28]]
+        : [["Level Up", "#aab4c8", 42], ["Buy the tree first", "#ffb3b3", 34], ["+40% fruit value", "#8894ad", 26]];
+      glowPad(p, afford && own, t, own ? 0x2d7cf6 : 0x55607a, G);
+    } else {
+      const maxed = dropInterval(p.id) <= MIN_DROP + 0.001;
+      const cost = treeSpeedCost(p.id);
+      afford = player.money >= cost && !maxed; can = own && !maxed; action = () => buyTreeSpeed(p.id);
+      lines = own
+        ? [[`${f.name} Speed ${treeState[p.id].spd}`, "#fff", 40], [maxed ? "MAX" : formatMoney(cost), maxed ? "#ffd84d" : (afford ? "#7dff9b" : "#ffb3b3"), 56], [`Drops every ${dropInterval(p.id).toFixed(1)}s`, "#ffd9a8", 28]]
+        : [["Production Speed", "#aab4c8", 38], ["Buy the tree first", "#ffb3b3", 34], ["Faster fruit drops", "#8894ad", 26]];
+      glowPad(p, afford && own, t, own ? 0x2d7cf6 : 0x55607a, G);
+    }
+    setLabel(p.label, lines);
+    padTrigger(p, p.h, 1.9, dt, repeat, action, can, afford);
+  });
+
+  // buy-a-floor pads
+  levelPads.forEach((p) => {
+    if (!p) return;
+    const below = levelState[p.level - 1], L = LEVELS[p.level];
+    const show = below.owned && below.rise >= 1 && !levelState[p.level].owned;
+    p.group.visible = show;
+    if (!show) return;
+    const afford = player.money >= L.cost;
+    setLabel(p.label, [[L.name, "#fff", 50], [formatMoney(L.cost), afford ? "#7dff9b" : "#ffb3b3", 62], ["5 new fruit trees", "#ffd9a8", 30]]);
+    glowPad(p, afford, t, 0xd94a3a, 0xffc400);
+    padTrigger(p, p.h, 2.4, dt, 1, () => buyFloor(p.level), true, afford);
+  });
+
+  // elevator call pads (on every floor) and select pads (inside the elevator)
+  const moving2 = elevMoving();
+  callPads.forEach((p) => {
+    const lv = levelState[p.level];
+    p.group.visible = lv.owned && lv.rise >= 1;
+    if (!p.group.visible) return;
+    setLabel(p.label, [["Elevator", "#fff", 46], [moving2 ? "Moving..." : (elev.to === p.level ? "Here" : "Step here to call"), "#ffd9a8", 34]]);
+    p.plate.material.color.set(moving2 ? 0x8894ad : 0x2d7cf6);
+    padTrigger(p, p.h, 1.9, dt, 1.2, () => { requestElevator(p.level); return true; }, true, true);
+  });
+  elevSelectPads.forEach((p) => {
+    const lv = levelState[p.floor];
+    const ok = lv.owned && lv.rise >= 1;
+    setLabel(p.label, [[`Floor ${p.floor + 1}`, ok ? "#fff" : "#8894ad", 46], [ok ? (elev.to === p.floor && !moving2 ? "Here" : "Go") : "Locked", ok ? "#7dff9b" : "#ffb3b3", 36]]);
+    p.plate.material.color.set(ok ? 0x2d7cf6 : 0x55607a);
+    const wx = p.x, wz = p.z;
+    p.cooldown -= dt;
+    if (ok && p.cooldown <= 0 && Math.abs(hero.position.x - wx) < 1.5 && Math.abs(hero.position.z - wz) < 1.5 && Math.abs(hero.position.y - ey) < 2.5) {
+      requestElevator(p.floor);
+      p.cooldown = 1.2;
+    }
+  });
+
+  // pet egg stations
+  eggStations.forEach((st) => {
+    const afford = player.money >= st.egg.cost;
+    const odds = st.egg.odds;
+    setLabel(st.pad.label, [
+      [st.egg.name, "#fff", 46],
+      [formatMoney(st.egg.cost), afford ? "#7dff9b" : "#ffb3b3", 58],
+      [hatch.active ? "Hatching..." : `Epic+ chance ${odds[3] + odds[4]}%`, "#ffd9a8", 30]
+    ]);
+    glowPad(st.pad, afford && !hatch.active, t, 0xd94a3a, 0xffc400);
+    if (!hatch.active) { st.model.rotation.y += dt * 0.8; st.model.position.y = 3.2 + Math.sin(t * 2 + st.egg.cost) * 0.2; }
+    // eggs need a fresh step onto the pad each time, so you never buy one by accident
+    if (st.pad.armed === undefined) st.pad.armed = true;
+    if (!standingOn(st.pad.wx, st.pad.wz, 0, 2.2)) st.pad.armed = true;
+    padTrigger(st.pad, 0, 2.2, dt, 0.5, () => { st.pad.armed = false; return buyEgg(st); }, !hatch.active && st.pad.armed, afford);
+  });
+
+  // obby chest labels and the "back to checkpoint" button
+  courses.forEach((c) => {
+    const wait = Math.max(0, obbyState.ready[c.c] - Date.now());
+    setLabel(c.finish.label, [[`${c.def.name} Chest`, c.def.color, 50], [wait > 0 ? `Ready in ${Math.floor(wait / 60000)}:${String(Math.floor((wait % 60000) / 1000)).padStart(2, "0")}` : "Coins, fruit and a pet!", wait > 0 ? "#ffb3b3" : "#7dff9b", 34]]);
+  });
+  el.cpBtn.style.display = courseAt(hero.position.x, hero.position.z, 6) ? "block" : "none";
+
+  // ----- multiplayer -----
+  updateRemotes(dt, t);
+  netSendMove(dt);
+
+  clouds.forEach((c) => { c.position.x += dt * 1.2; if (c.position.x > 260) c.position.x = -160; });
+  renderer.render(scene, camera);
+}
+
+/* ---------- Start ---------- */
+
+buildCharGrid();
+loadGame();
+setHeroCharacter(profile.character);
+rebuildLocalPet();
+setAutoCollect(settings.autoCollect);
+setFirstPerson(false);
+updateHUD();
+updatePlayerCard();
+updateCollectorUI();
+rebuildPetsPanel();
+if (profile.confirmed) { menuOpen = false; el.menu.hidden = true; } else openMenu(false);
+initFirebase();
+animate();
+
+  </script>
+</body>
+</html>
